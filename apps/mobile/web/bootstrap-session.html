@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Session Bootstrap</title>
+  </head>
+  <body>
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const sessionB64 = params.get('session_b64');
+      const redirect = params.get('redirect') || '/';
+
+      if (sessionB64) {
+        const session = decodeURIComponent(escape(window.atob(sessionB64)));
+        window.localStorage.setItem(
+          'flutter.smart_event.auth_session',
+          JSON.stringify(session),
+        );
+      }
+
+      window.location.replace(redirect);
+    </script>
+  </body>
+</html>

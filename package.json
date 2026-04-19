@@ -1,0 +1,11 @@
+{
+  "name": "smart-event-workspace",
+  "private": true,
+  "scripts": {
+    "dev:api": "zsh -lc 'set -a; [ -f .env ] && source .env; set +a; cd apps/api && npm run start'",
+    "dev:admin": "zsh -lc 'set -a; [ -f .env ] && source .env; set +a; cd apps/admin && PORT=${ADMIN_PORT:-3001} npm run dev -- --port ${ADMIN_PORT:-3001}'",
+    "db:reset:demo": "node tools/reset_demo_db.mjs",
+    "seed:demo": "zsh -lc 'set -a; [ -f .env ] && source .env; set +a; node tools/seed_demo.mjs'",
+    "check:ai": "zsh -lc 'set -a; [ -f .env ] && source .env; set +a; node tools/check_local_ai.mjs'"
+  }
+}

@@ -1,0 +1,44 @@
+# Root level
+node_modules/
+dist/
+build/
+.next/
+.out/
+.swc/
+.dart_tool/
+.flutter-*
+artifacts/
+coverage/
+*.log
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.DS_Store
+.metadata
+
+# Next.js (admin)
+apps/admin/.next/
+
+# Flutter - Ignore heavy build caches and generated platform stuff we don't need to track
+apps/mobile/android/.gradle/
+apps/mobile/android/app/build/
+apps/mobile/ios/.symlinks/
+apps/mobile/ios/Pods/
+apps/mobile/ios/build/
+apps/mobile/ios/Flutter/AppFrameworkInfo.plist
+
+# Tooling - Very important: ignore the massive Flutter SDK
+.tooling/flutter/flutter/
+.tooling/
+
+# Sub-app lockfiles (keep only root)
+apps/*/package-lock.json
+apps/*/pubspec.lock

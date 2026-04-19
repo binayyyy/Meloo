@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Bootstrap</title>
+  </head>
+  <body>
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const tokenB64 = params.get('token_b64');
+      const redirect = params.get('redirect') || '/';
+
+      if (tokenB64) {
+        const token = decodeURIComponent(escape(window.atob(tokenB64)));
+        window.localStorage.setItem('smart-event-admin-token', token);
+      }
+
+      window.location.replace(redirect);
+    </script>
+  </body>
+</html>
