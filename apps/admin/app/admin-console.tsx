@@ -548,7 +548,7 @@ export function AdminConsole({
         <div className="sidebar-brand">
           <BrandLockup />
           <p className="sidebar-copy">
-            Internal operations, trust, users, support, moderation, and platform health.
+            Internal operating layer for trust, release control, and support.
           </p>
         </div>
 
@@ -568,7 +568,7 @@ export function AdminConsole({
           <PanelHeader
             eyebrow="Access"
             title="Admin session"
-            detail="Use a real internal admin login, or paste a bearer token if you already have one."
+            detail="Use the internal admin account or a saved bearer token."
           />
           <div className="panel-stack">
             <input
@@ -613,7 +613,7 @@ export function AdminConsole({
           <PanelHeader
             eyebrow="Asset studio"
             title="Real file uploads"
-            detail="Upload live images and documents, then reuse the returned URLs in profiles, events, and verification flows."
+            detail="Upload live assets and reuse the returned URLs anywhere in Meloo."
           />
           {!adminToken ? (
             <EmptyState text="Add an admin token to upload assets." />
@@ -694,7 +694,7 @@ export function AdminConsole({
           <PanelHeader
             eyebrow="Marketplace"
             title="Live snapshot"
-            detail="Public supply visible right now."
+            detail="Public surface right now."
           />
           <div className="mini-stat-stack">
             {publicSnapshot.map((item) => (
@@ -710,7 +710,7 @@ export function AdminConsole({
           <PanelHeader
             eyebrow="Taxonomy"
             title="Category desk"
-            detail="Control event classification from one place."
+            detail="Manage public event categories."
           />
           {!adminToken ? (
             <EmptyState text="Add an admin token to create categories." />
@@ -752,7 +752,7 @@ export function AdminConsole({
             <p className="eyebrow">Meloo platforms / {currentNavItem.label}</p>
             <h1>{currentNavItem.label}</h1>
             <p className="topbar-copy">
-              A premium operations layer for marketplace trust, support, moderation, asset flow, and live platform readiness.
+              Operating system for live events, trust, and marketplace control.
             </p>
           </div>
           <div className="topbar-actions">
@@ -774,8 +774,8 @@ export function AdminConsole({
         <section id="overview" className="content-section">
           <SectionHeader
             eyebrow="Overview"
-            title="Executive operating view"
-            detail="High-signal counts across users, sessions, events, support, and live marketplace supply."
+            title="Operating view"
+            detail="High-signal counts across users, sessions, events, and support."
           />
           <div className="overview-grid">
             {overviewCards.length === 0 ? (
@@ -795,7 +795,7 @@ export function AdminConsole({
             <Panel
               eyebrow="Release state"
               title="Event release mix"
-              detail="Live moderation and publication footprint."
+              detail="Publication footprint."
             >
               {adminState.overview ? (
                 <div className="mini-stat-stack">
@@ -820,7 +820,7 @@ export function AdminConsole({
             <Panel
               eyebrow="Public surface"
               title="Marketplace snapshot"
-              detail="What users can see without admin credentials."
+              detail="What the public can see."
             >
               {isPublicLoading ? (
                 <EmptyState text="Loading public marketplace data..." />
@@ -851,7 +851,7 @@ export function AdminConsole({
           <SectionHeader
             eyebrow="Users"
             title="User directory and account controls"
-            detail="Activate, suspend, deactivate, revoke sessions, and inspect profile trust state."
+            detail="Manage account state, sessions, and trust visibility."
           />
           {!adminToken ? (
             <LockedPanel text="Add an admin token to manage users and sessions." />
@@ -859,7 +859,7 @@ export function AdminConsole({
             <Panel
               eyebrow="Accounts"
               title="User directory"
-              detail="All public and internal users, with live session and trust state."
+              detail="All users with live session and trust state."
             >
               <DataTable
                 headers={[
@@ -1036,16 +1036,16 @@ export function AdminConsole({
           <SectionHeader
             eyebrow="Verification"
             title="Trust and profile review"
-            detail="Approve or reject vendor and sponsor trust signals from one queue."
+            detail="Review vendor and sponsor trust queues."
           />
           {!adminToken ? (
             <LockedPanel text="Add an admin token to review vendor and sponsor trust queues." />
           ) : (
             <div className="split-grid">
               <Panel
-                eyebrow="Vendors"
-                title="Pending vendor verification"
-                detail="Profiles waiting for the Meloo verified mark."
+              eyebrow="Vendors"
+              title="Pending vendor verification"
+              detail="Profiles waiting for verification."
               >
                 {adminState.pendingVendors.length === 0 ? (
                   <EmptyState text="No pending vendor profiles." />
@@ -1105,9 +1105,9 @@ export function AdminConsole({
               </Panel>
 
               <Panel
-                eyebrow="Sponsors"
-                title="Pending sponsor verification"
-                detail="Company profiles waiting for approval."
+              eyebrow="Sponsors"
+              title="Pending sponsor verification"
+              detail="Company profiles waiting for verification."
               >
                 {adminState.pendingSponsors.length === 0 ? (
                   <EmptyState text="No pending sponsor profiles." />
@@ -1181,16 +1181,16 @@ export function AdminConsole({
           <SectionHeader
             eyebrow="Support"
             title="Tickets and escalations"
-            detail="Run the service desk, assign tickets, resolve cases, and inspect AI escalations."
+            detail="Run the support desk and escalation queue."
           />
           {!adminToken ? (
             <LockedPanel text="Add an admin token to manage support and escalations." />
           ) : (
             <div className="split-grid">
               <Panel
-                eyebrow="Tickets"
-                title="Support queue"
-                detail="Organizer, attendee, and platform support traffic."
+              eyebrow="Tickets"
+              title="Support queue"
+              detail="Open and active support cases."
               >
                 <DataTable
                   headers={['Subject', 'Requester', 'Priority', 'Status', 'AI', 'Actions']}
@@ -1256,9 +1256,9 @@ export function AdminConsole({
               </Panel>
 
               <Panel
-                eyebrow="Escalations"
-                title="AI escalation log"
-                detail="Low-confidence or high-risk cases that need human review."
+              eyebrow="Escalations"
+              title="AI escalation log"
+              detail="Cases that need human review."
               >
                 {adminState.escalations.length === 0 ? (
                   <EmptyState text="No escalations found." />
@@ -1289,7 +1289,7 @@ export function AdminConsole({
           <SectionHeader
             eyebrow="Moderation"
             title="Event release control"
-            detail="Publish, draft, cancel, and inspect marketplace release state."
+            detail="Publish, draft, and cancel events."
           />
           {!adminToken ? (
             <LockedPanel text="Add an admin token to moderate events." />

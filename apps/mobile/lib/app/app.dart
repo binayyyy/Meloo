@@ -115,14 +115,71 @@ class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
 
   @override
   Widget build(BuildContext context) {
-    const primary = Color(0xFF132A4A);
-    const secondary = Color(0xFF1AB2C4);
-    const tertiary = Color(0xFFD8A548);
-    const surface = Color(0xFFFFFBF5);
+    const primary = Color(0xFF102844);
+    const secondary = Color(0xFF0FA6B8);
+    const tertiary = Color(0xFFD39B3C);
+    const surface = Color(0xFFFFFAF2);
+    const surfaceSoft = Color(0xFFF7EFDF);
     const ink = Color(0xFF17263D);
-    const canvas = Color(0xFFF3EBDD);
-    const outline = Color(0xFFDDD0BF);
-    const muted = Color(0xFF686B72);
+    const canvas = Color(0xFFF1E7D7);
+    const outline = Color(0xFFD8C7AF);
+    const muted = Color(0xFF6D706F);
+    final base = ThemeData.light();
+    final textTheme = base.textTheme.copyWith(
+      displayLarge: const TextStyle(
+        color: ink,
+        fontSize: 42,
+        fontWeight: FontWeight.w900,
+        letterSpacing: -1.4,
+        height: 0.94,
+      ),
+      displayMedium: const TextStyle(
+        color: ink,
+        fontSize: 34,
+        fontWeight: FontWeight.w900,
+        letterSpacing: -1.1,
+        height: 0.98,
+      ),
+      headlineLarge: const TextStyle(
+        color: ink,
+        fontSize: 28,
+        fontWeight: FontWeight.w900,
+        letterSpacing: -0.9,
+      ),
+      headlineMedium: const TextStyle(
+        color: ink,
+        fontSize: 24,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.7,
+      ),
+      titleLarge: const TextStyle(
+        color: ink,
+        fontSize: 20,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.45,
+      ),
+      titleMedium: const TextStyle(
+        color: ink,
+        fontSize: 16,
+        fontWeight: FontWeight.w800,
+      ),
+      bodyLarge: const TextStyle(
+        color: ink,
+        fontSize: 15,
+        height: 1.55,
+      ),
+      bodyMedium: const TextStyle(
+        color: ink,
+        fontSize: 14,
+        height: 1.5,
+      ),
+      labelLarge: const TextStyle(
+        color: ink,
+        fontSize: 14,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.1,
+      ),
+    );
 
     return MaterialApp(
       title: 'Meloo',
@@ -134,15 +191,13 @@ class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
           secondary: secondary,
           tertiary: tertiary,
           surface: surface,
+          surfaceContainerHighest: surfaceSoft,
           error: Color(0xFFA44336),
         ),
         scaffoldBackgroundColor: canvas,
-        textTheme: ThemeData.light().textTheme.apply(
-              bodyColor: ink,
-              displayColor: ink,
-            ),
+        textTheme: textTheme,
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFFFFF9F1),
+          backgroundColor: Color(0xFFF8F0E2),
           foregroundColor: ink,
           elevation: 0,
           scrolledUnderElevation: 0,
@@ -152,14 +207,15 @@ class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
             color: ink,
             fontSize: 20,
             fontWeight: FontWeight.w800,
+            letterSpacing: -0.4,
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: Colors.white.withValues(alpha: 0.84),
+          fillColor: Colors.white.withValues(alpha: 0.88),
           labelStyle: const TextStyle(
             color: muted,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
           ),
           hintStyle: const TextStyle(color: Color(0xFF8A8386)),
           helperStyle: const TextStyle(color: muted),
@@ -195,12 +251,12 @@ class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
             disabledBackgroundColor: const Color(0xFFB7C7D8),
             textStyle: const TextStyle(
               fontWeight: FontWeight.w800,
-              letterSpacing: 0.1,
+              letterSpacing: 0.2,
             ),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(20),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 17),
             elevation: 0,
           ),
         ),
@@ -208,17 +264,20 @@ class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
           style: OutlinedButton.styleFrom(
             foregroundColor: ink,
             side: const BorderSide(color: outline),
-            backgroundColor: Colors.white.withValues(alpha: 0.52),
+            backgroundColor: Colors.white.withValues(alpha: 0.64),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(18),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            textStyle: const TextStyle(fontWeight: FontWeight.w700),
+            padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 14),
+            textStyle: const TextStyle(
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.1,
+            ),
           ),
         ),
         chipTheme: ChipThemeData(
-          backgroundColor: const Color(0xFFF5ECDE),
-          selectedColor: const Color(0xFFDFF5F4),
+          backgroundColor: const Color(0xFFF6ECDC),
+          selectedColor: const Color(0xFFD8F0EF),
           disabledColor: const Color(0xFFE7DDCF),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           side: const BorderSide(color: outline),
@@ -234,7 +293,7 @@ class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
           backgroundColor: surface,
           surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
           ),
         ),
         cardTheme: CardThemeData(
@@ -246,9 +305,27 @@ class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
             side: BorderSide(color: outline),
           ),
         ),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: Color(0xFF102844),
+          foregroundColor: Colors.white,
+          shape: StadiumBorder(),
+          extendedTextStyle: TextStyle(
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.2,
+          ),
+        ),
+        iconButtonTheme: IconButtonThemeData(
+          style: IconButton.styleFrom(
+            foregroundColor: ink,
+            backgroundColor: Colors.white.withValues(alpha: 0.6),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        ),
         navigationBarTheme: const NavigationBarThemeData(
-          backgroundColor: Color(0xFFF9F2E9),
-          indicatorColor: Color(0x1F2B9A84),
+          backgroundColor: Color(0xFFF6EDDF),
+          indicatorColor: Color(0x26249097),
           surfaceTintColor: Colors.transparent,
           labelTextStyle: WidgetStatePropertyAll(
             TextStyle(
@@ -259,14 +336,19 @@ class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
         ),
         snackBarTheme: SnackBarThemeData(
           backgroundColor: primary,
-          contentTextStyle: ThemeData.light().textTheme.bodyMedium?.copyWith(
+          contentTextStyle: textTheme.bodyMedium?.copyWith(
                 color: Colors.white,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
               ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
+        ),
+        progressIndicatorTheme: const ProgressIndicatorThemeData(
+          color: secondary,
+          linearTrackColor: Color(0x33D39B3C),
+          circularTrackColor: Color(0x33102844),
         ),
         dividerColor: outline,
         useMaterial3: true,

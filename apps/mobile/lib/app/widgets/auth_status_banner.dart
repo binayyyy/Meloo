@@ -17,11 +17,14 @@ class AuthStatusBanner extends StatelessWidget {
       color.withValues(alpha: 0.12),
       scheme.surface,
     );
+    final icon = color == scheme.error
+        ? Icons.error_outline_rounded
+        : Icons.check_circle_rounded;
 
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: panelColor,
         borderRadius: BorderRadius.circular(22),
@@ -37,11 +40,18 @@ class AuthStatusBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            color == scheme.error
-                ? Icons.error_outline_rounded
-                : Icons.check_circle_outline_rounded,
-            color: color,
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
