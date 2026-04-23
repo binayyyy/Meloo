@@ -53,6 +53,22 @@ class ChatApiClient {
         .toList(growable: false);
   }
 
+  Future<ChatMessageModel> sendMessage({
+    required String accessToken,
+    required String conversationId,
+    required String body,
+  }) async {
+    final response = await _client.post(
+      Uri.parse('$baseUrl/chat/conversations/$conversationId/messages'),
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'body': body}),
+    );
+    return ChatMessageModel.fromJson(_decodeMap(response));
+  }
+
   List<Map<String, dynamic>> _decodeList(http.Response response) {
     final dynamic decoded =
         response.body.isEmpty ? <dynamic>[] : jsonDecode(response.body);

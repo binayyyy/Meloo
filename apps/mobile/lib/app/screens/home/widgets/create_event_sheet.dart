@@ -158,18 +158,8 @@ class _CreateEventSheetState extends State<CreateEventSheet> {
               ),
               const SizedBox(height: 12),
               const Text(
-                'Start with the operational details. Tickets, vendors, and sponsorships will attach to the event later.',
+                'Set the event details and location.',
                 style: TextStyle(color: Color(0xFF5F645F), height: 1.5),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                'Use a live uploaded image URL if you want the event to launch with a banner immediately.',
-                style: TextStyle(color: Color(0xFF7A7369), height: 1.5),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                'Set the event location on the map to rank vendors by real distance instead of city name alone.',
-                style: TextStyle(color: Color(0xFF7A7369), height: 1.5),
               ),
               const SizedBox(height: 20),
               TextFormField(

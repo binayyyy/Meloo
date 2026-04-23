@@ -93,8 +93,7 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
     await Future.wait([
       _chatController.load(session),
       _notificationsController.load(session),
-      if (session.user.role == UserRole.attendee ||
-          session.user.role == UserRole.admin)
+      if (session.user.role == UserRole.attendee)
         _paymentsController.load(session),
       _supportController.load(session),
       _sponsorsController.load(session),
@@ -994,7 +993,7 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
             _HeroCard(
               roleLabel: user.role.name,
               headline: _headlineForRole(user.role),
-              supporting: '${_bodyForRole(user.role)}  ${user.email}',
+              supporting: _bodyForRole(user.role),
               metrics: heroMetrics,
               palette: palette,
             ),
@@ -1018,9 +1017,6 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
       if (_eventsController.errorMessage != null)
         _BannerMessage(
             _eventsController.errorMessage!, const Color(0xFFB3261E)),
-      if (_eventsController.successMessage != null)
-        _BannerMessage(
-            _eventsController.successMessage!, const Color(0xFF0E6B5C)),
       if (_chatController.errorMessage != null)
         _BannerMessage(_chatController.errorMessage!, const Color(0xFFB3261E)),
       if (_aiController.errorMessage != null)
@@ -1033,27 +1029,15 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
       if (_supportController.errorMessage != null)
         _BannerMessage(
             _supportController.errorMessage!, const Color(0xFFB3261E)),
-      if (_supportController.successMessage != null)
-        _BannerMessage(
-            _supportController.successMessage!, const Color(0xFF0E6B5C)),
       if (_paymentsController.errorMessage != null)
         _BannerMessage(
             _paymentsController.errorMessage!, const Color(0xFFB3261E)),
-      if (_paymentsController.successMessage != null)
-        _BannerMessage(
-            _paymentsController.successMessage!, const Color(0xFF0E6B5C)),
       if (_vendorsController.errorMessage != null)
         _BannerMessage(
             _vendorsController.errorMessage!, const Color(0xFFB3261E)),
-      if (_vendorsController.successMessage != null)
-        _BannerMessage(
-            _vendorsController.successMessage!, const Color(0xFF0E6B5C)),
       if (_sponsorsController.errorMessage != null)
         _BannerMessage(
             _sponsorsController.errorMessage!, const Color(0xFFB3261E)),
-      if (_sponsorsController.successMessage != null)
-        _BannerMessage(
-            _sponsorsController.successMessage!, const Color(0xFF0E6B5C)),
     ];
 
     return banners
@@ -1195,7 +1179,7 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
       case UserRole.sponsor:
         return _sponsorDealSignals();
       case UserRole.admin:
-        return _organizerStudioSignals(role);
+        return _adminReviewSignals();
     }
   }
 
@@ -1278,6 +1262,32 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
         value: _sponsorsController.myOpportunities.length.toString(),
         note: 'Revenue pipeline',
         icon: Icons.handshake_rounded,
+        color: const Color(0xFFB26B2D),
+      ),
+    ];
+  }
+
+  List<_LeadSignal> _adminReviewSignals() {
+    return [
+      _LeadSignal(
+        label: 'Events',
+        value: _eventsController.publicEvents.length.toString(),
+        note: 'Live inventory',
+        icon: Icons.public_rounded,
+        color: const Color(0xFF173B63),
+      ),
+      _LeadSignal(
+        label: 'Vendors',
+        value: _vendorsController.publicVendors.length.toString(),
+        note: 'Coverage to review',
+        icon: Icons.storefront_rounded,
+        color: const Color(0xFF145B52),
+      ),
+      _LeadSignal(
+        label: 'Alerts',
+        value: _notificationsController.unreadCount.toString(),
+        note: 'Unread ops activity',
+        icon: Icons.notifications_active_rounded,
         color: const Color(0xFFB26B2D),
       ),
     ];
@@ -1508,7 +1518,6 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
           ),
         ];
       case UserRole.organizer:
-      case UserRole.admin:
         return [
           const SizedBox(height: 16),
           _SignalStrip(signals: _organizerMarketSignals(user.role)),
@@ -1628,6 +1637,93 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
                         .toList(growable: false),
                   ),
           ),
+        ];
+      case UserRole.admin:
+        return [
+          const SizedBox(height: 16),
+          _SignalStrip(signals: _adminReviewSignals()),
+          if (featuredEvent != null) ...[
+            const SizedBox(height: 16),
+            _FeaturedEventPanel(
+              event: featuredEvent,
+              onTap: () => _openEventDetail(
+                session,
+                featuredEvent.id,
+                manageMode: false,
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          _SectionCard(
+            title: publicEvents.isEmpty ? 'No live events' : 'Event pulse',
+            accent: const Color(0xFF173B63),
+            icon: Icons.monitor_heart_rounded,
+            child: publicEvents.isEmpty
+                ? const Text(
+                    'Public activity will appear here once events are live.',
+                    style: TextStyle(color: Color(0xFF5F645F), height: 1.5),
+                  )
+                : Column(
+                    children: publicEvents
+                        .take(6)
+                        .map(
+                          (event) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _EventCard(
+                              event: event,
+                              accent: const Color(0xFF173B63),
+                              onTap: () => _openEventDetail(
+                                session,
+                                event.id,
+                                manageMode: false,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(growable: false),
+                  ),
+          ),
+          if (_vendorsController.publicVendors.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _SectionCard(
+              title: 'Vendor coverage',
+              accent: const Color(0xFF145B52),
+              icon: Icons.storefront_rounded,
+              child: Column(
+                children: _vendorsController.publicVendors
+                    .take(4)
+                    .map(
+                      (vendor) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _VendorDiscoveryCard(vendor: vendor),
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+            ),
+          ],
+          if (_sponsorsController.openOpportunities.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _SectionCard(
+              title: 'Sponsor queue',
+              accent: const Color(0xFFB26B2D),
+              icon: Icons.handshake_rounded,
+              child: Column(
+                children: _sponsorsController.openOpportunities
+                    .take(4)
+                    .map(
+                      (opportunity) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _SponsorshipOpportunityCard(
+                          opportunity: opportunity,
+                          accent: const Color(0xFFB26B2D),
+                        ),
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+            ),
+          ],
         ];
       case UserRole.vendor:
         return [
@@ -1836,7 +1932,6 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
           ),
         ];
       case UserRole.organizer:
-      case UserRole.admin:
         return [
           const SizedBox(height: 16),
           _SignalStrip(signals: _organizerStudioSignals(user.role)),
@@ -1963,6 +2058,81 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
                   ),
               ],
             ),
+          ),
+        ];
+      case UserRole.admin:
+        return [
+          const SizedBox(height: 16),
+          _SignalStrip(signals: _adminReviewSignals()),
+          const SizedBox(height: 16),
+          _SectionCard(
+            title: 'Platform review',
+            accent: const Color(0xFF173B63),
+            icon: Icons.fact_check_rounded,
+            child: _eventsController.publicEvents.isEmpty
+                ? const Text(
+                    'Live events will appear here for review.',
+                    style: TextStyle(color: Color(0xFF5F645F), height: 1.5),
+                  )
+                : Column(
+                    children: _eventsController.publicEvents
+                        .take(6)
+                        .map(
+                          (event) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _EventCard(
+                              event: event,
+                              accent: const Color(0xFF173B63),
+                              onTap: () => _openEventDetail(
+                                session,
+                                event.id,
+                                manageMode: false,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(growable: false),
+                  ),
+          ),
+          if (_vendorsController.publicVendors.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _SectionCard(
+              title: 'Vendor readiness',
+              accent: const Color(0xFF145B52),
+              icon: Icons.approval_rounded,
+              child: Column(
+                children: _vendorsController.publicVendors
+                    .take(4)
+                    .map(
+                      (vendor) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _VendorDiscoveryCard(vendor: vendor),
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          _SectionCard(
+            title: 'Support watch',
+            accent: const Color(0xFFB26B2D),
+            icon: Icons.support_agent_rounded,
+            child: _supportController.tickets.isEmpty
+                ? const Text(
+                    'No support tickets linked to this account yet.',
+                    style: TextStyle(color: Color(0xFF5F645F), height: 1.5),
+                  )
+                : Column(
+                    children: _supportController.tickets
+                        .map(
+                          (ticket) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _SupportTicketCard(ticket: ticket),
+                          ),
+                        )
+                        .toList(growable: false),
+                  ),
           ),
         ];
       case UserRole.vendor:
@@ -2345,12 +2515,13 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
   ) {
     switch (role) {
       case UserRole.organizer:
-      case UserRole.admin:
         return FloatingActionButton.extended(
           onPressed: () => _openCreateEventSheet(session),
           icon: const Icon(Icons.add),
           label: const Text('Create event'),
         );
+      case UserRole.admin:
+        return null;
       case UserRole.vendor:
         return FloatingActionButton.extended(
           onPressed: () => _vendorsController.myVendorProfile == null
@@ -2517,7 +2688,7 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
             label: 'Pulse',
             headline: 'Pulse',
             description:
-                'Monitor event supply, marketplace health, and public activity.',
+                'Watch public activity, vendor coverage, and platform movement.',
             icon: Icons.monitor_heart_outlined,
             selectedIcon: Icons.monitor_heart_rounded,
           ),
@@ -2525,7 +2696,7 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
             label: 'Review',
             headline: 'Review',
             description:
-                'Operate events, planning, vendor flow, and sponsor queues.',
+                'Review live events, vendors, sponsor demand, and support status.',
             icon: Icons.fact_check_outlined,
             selectedIcon: Icons.fact_check_rounded,
           ),
@@ -2571,7 +2742,6 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
           ),
         ];
       case UserRole.organizer:
-      case UserRole.admin:
         return [
           _QuickActionData(
             label: 'New event',
@@ -2587,6 +2757,24 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
             label: 'Sponsor',
             icon: Icons.campaign_rounded,
             onTap: () => _openCreateOpportunitySheet(session),
+          ),
+        ];
+      case UserRole.admin:
+        return [
+          _QuickActionData(
+            label: 'Pulse',
+            icon: Icons.monitor_heart_rounded,
+            onTap: () => setState(() => _selectedTab = 0),
+          ),
+          _QuickActionData(
+            label: 'Review',
+            icon: Icons.fact_check_rounded,
+            onTap: () => setState(() => _selectedTab = 1),
+          ),
+          _QuickActionData(
+            label: 'Inbox',
+            icon: Icons.forum_rounded,
+            onTap: () => setState(() => _selectedTab = 2),
           ),
         ];
       case UserRole.vendor:
@@ -2629,7 +2817,7 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
   }
 
   bool _canCreateEvents(UserRole role) {
-    return role == UserRole.organizer || role == UserRole.admin;
+    return role == UserRole.organizer;
   }
 
   Future<void> _openEventDetail(
@@ -2682,7 +2870,7 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
       case UserRole.sponsor:
         return 'Matches, interest, and deals.';
       case UserRole.admin:
-        return 'Internal operations only.';
+        return 'Ops review, support, and platform visibility.';
     }
   }
 
@@ -2771,7 +2959,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
         return [
           _HeroMetric(
               'Events', _eventsController.publicEvents.length.toString()),
-          _HeroMetric('Tickets', _supportController.tickets.length.toString()),
+          _HeroMetric(
+              'Vendors', _vendorsController.publicVendors.length.toString()),
           _HeroMetric(
             'Alerts',
             _notificationsController.unreadCount.toString(),
@@ -3670,21 +3859,18 @@ class _BannerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isPositive = color == const Color(0xFF0E6B5C);
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        color: Colors.white.withValues(alpha: 0.78),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            isPositive
-                ? Icons.check_circle_outline_rounded
-                : Icons.info_outline_rounded,
+            Icons.info_outline_rounded,
             color: color,
           ),
           const SizedBox(width: 12),
@@ -3723,11 +3909,11 @@ class _SectionCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFFFFFCF8),
-            Color(0xFFF4ECE0),
+            Colors.white,
+            Color(0xFFF8F5EF),
           ],
         ),
-        border: Border.all(color: const Color(0xFFD8D1C2)),
+        border: Border.all(color: accent.withValues(alpha: 0.14)),
         boxShadow: const [
           BoxShadow(
             color: Color(0x101A130C),
@@ -3796,10 +3982,10 @@ class _EventCard extends StatelessWidget {
             end: Alignment.bottomRight,
             colors: [
               Colors.white,
-              Color(0xFFF8F2E8),
+              Color(0xFFFAF7F1),
             ],
           ),
-          border: Border.all(color: const Color(0xFFE0D9CB)),
+          border: Border.all(color: accent.withValues(alpha: 0.14)),
           boxShadow: const [
             BoxShadow(
               color: Color(0x0D1A130C),
@@ -3835,9 +4021,13 @@ class _EventCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-              event.category.name,
-              style: TextStyle(color: accent, fontWeight: FontWeight.w700),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _StatusChip(label: event.category.name, color: accent),
+                _MetaLabel(label: _formatEventWindow(event)),
+              ],
             ),
             const SizedBox(height: 8),
             Text(
@@ -3851,7 +4041,6 @@ class _EventCard extends StatelessWidget {
               spacing: 12,
               runSpacing: 8,
               children: [
-                _MetaLabel(label: _formatEventWindow(event)),
                 _MetaLabel(label: '${event.venue}, ${event.city}'),
                 _MetaLabel(label: event.visibility),
               ],
@@ -4525,6 +4714,8 @@ class _ConversationCard extends StatelessWidget {
     final counterpart = conversation.counterpartFor(currentUserId);
     final title = counterpart?.displayName ?? 'Conversation';
     final subtitle = conversation.lastMessage?.body ?? 'No messages yet';
+    final activityTime = conversation.lastMessage?.createdAt ?? conversation.createdAt;
+    final initial = title.trim().isEmpty ? 'M' : title.trim().characters.first.toUpperCase();
 
     return InkWell(
       onTap: onTap,
@@ -4534,41 +4725,112 @@ class _ConversationCard extends StatelessWidget {
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          color: Colors.white,
-          border: Border.all(color: const Color(0xFFE0D9CB)),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white,
+              Color(0xFFF8F5EF),
+            ],
+          ),
+          border: Border.all(color: const Color(0x1F173B63)),
         ),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
+            Container(
+              width: 46,
+              height: 46,
+              decoration: const BoxDecoration(
+                color: Color(0xFF173B63),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                initial,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        _formatRelativeTimestamp(activityTime),
+                        style: const TextStyle(
+                          color: Color(0xFF7A7369),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _StatusChip(
+                        label: counterpart?.role.name ?? conversation.type,
+                        color: const Color(0xFF0E6B5C),
+                      ),
+                      _MetaLabel(label: _formatCompactTimestamp(activityTime)),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF5F645F),
+                      height: 1.5,
                     ),
                   ),
-                ),
-                _StatusChip(
-                  label: counterpart?.role.name ?? conversation.type,
-                  color: const Color(0xFF0E6B5C),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              subtitle,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Color(0xFF5F645F), height: 1.5),
+                ],
+              ),
             ),
           ],
         ),
       ),
     );
   }
+}
+
+String _formatCompactTimestamp(DateTime value) {
+  String two(int input) => input.toString().padLeft(2, '0');
+  return '${two(value.day)}/${two(value.month)} ${two(value.hour)}:${two(value.minute)}';
+}
+
+String _formatRelativeTimestamp(DateTime value) {
+  final diff = DateTime.now().difference(value);
+  if (diff.inMinutes < 1) {
+    return 'now';
+  }
+  if (diff.inHours < 1) {
+    return '${diff.inMinutes}m';
+  }
+  if (diff.inDays < 1) {
+    return '${diff.inHours}h';
+  }
+  if (diff.inDays < 7) {
+    return '${diff.inDays}d';
+  }
+  return _formatCompactTimestamp(value);
 }
 
 class _SupportTicketCard extends StatelessWidget {
@@ -4588,10 +4850,10 @@ class _SupportTicketCard extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [
             Colors.white,
-            Color(0xFFF6F1E8),
+            Color(0xFFF8F5EF),
           ],
         ),
-        border: Border.all(color: const Color(0xFFE0D9CB)),
+        border: Border.all(color: const Color(0x1FB26B2D)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -4825,10 +5087,27 @@ class _ChatConversationSheet extends StatefulWidget {
 
 class _ChatConversationSheetState extends State<_ChatConversationSheet> {
   final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+  }
+
+  @override
+  void didUpdateWidget(covariant _ChatConversationSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.messages.length != widget.messages.length ||
+        oldWidget.isLoading != widget.isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    }
+  }
 
   @override
   void dispose() {
     _messageController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -4837,8 +5116,30 @@ class _ChatConversationSheetState extends State<_ChatConversationSheet> {
     if (body.isEmpty) {
       return;
     }
-    _messageController.clear();
-    await widget.onSend(body);
+    try {
+      await widget.onSend(body);
+      if (mounted) {
+        _messageController.clear();
+      }
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Message failed to send')),
+      );
+    }
+  }
+
+  void _scrollToBottom() {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+    _scrollController.animateTo(
+      _scrollController.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   @override
@@ -4855,9 +5156,41 @@ class _ChatConversationSheetState extends State<_ChatConversationSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              widget.title,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF173B63),
+                    Color(0xFF145B52),
+                  ],
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.title,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Direct thread',
+                    style: TextStyle(
+                      color: Color(0xFFE8F0EE),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             Expanded(
@@ -4865,15 +5198,20 @@ class _ChatConversationSheetState extends State<_ChatConversationSheet> {
                   ? const Center(child: CircularProgressIndicator())
                   : widget.messages.isEmpty
                       ? const Center(
-                          child: Text(
-                            'No messages yet.',
-                            style: TextStyle(
-                              color: Color(0xFF5F645F),
-                              height: 1.5,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 28),
+                            child: Text(
+                              'No messages yet. Start the thread with a specific next step.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Color(0xFF5F645F),
+                                height: 1.5,
+                              ),
                             ),
                           ),
                         )
                       : ListView.separated(
+                          controller: _scrollController,
                           itemCount: widget.messages.length,
                           separatorBuilder: (_, __) =>
                               const SizedBox(height: 12),
@@ -4893,30 +5231,47 @@ class _ChatConversationSheetState extends State<_ChatConversationSheet> {
                                 padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
                                   color: message.isSystem
-                                      ? const Color(0xFFF4F0E8)
+                                      ? const Color(0xFFF4EFE3)
                                       : isMine
-                                          ? const Color(0xFFE4F4EF)
+                                          ? const Color(0xFF173B63)
                                           : Colors.white,
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: const Color(0xFFE0D9CB),
+                                    color: isMine
+                                        ? const Color(0x33173B63)
+                                        : const Color(0x1F173B63),
                                   ),
                                 ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      message.sender.displayName,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w700,
+                                    if (!isMine) ...[
+                                      Text(
+                                        message.sender.displayName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(height: 6),
+                                      const SizedBox(height: 6),
+                                    ],
                                     Text(
                                       message.body,
-                                      style: const TextStyle(
-                                        color: Color(0xFF5F645F),
+                                      style: TextStyle(
+                                        color: isMine
+                                            ? Colors.white
+                                            : const Color(0xFF5F645F),
                                         height: 1.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      _formatCompactTimestamp(message.createdAt),
+                                      style: TextStyle(
+                                        color: isMine
+                                            ? const Color(0xCCE8F0EE)
+                                            : const Color(0xFF7A7369),
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 12,
                                       ),
                                     ),
                                   ],
@@ -4931,13 +5286,20 @@ class _ChatConversationSheetState extends State<_ChatConversationSheet> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    minLines: 1,
-                    maxLines: 4,
-                    decoration: const InputDecoration(
-                      labelText: 'Message',
-                      border: OutlineInputBorder(),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.88),
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    child: TextField(
+                      controller: _messageController,
+                      minLines: 1,
+                      maxLines: 4,
+                      textInputAction: TextInputAction.newline,
+                      decoration: const InputDecoration(
+                        hintText: 'Write a clear next step',
+                        border: OutlineInputBorder(),
+                      ),
                     ),
                   ),
                 ),
@@ -5168,9 +5530,9 @@ class _MetaLabel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1EBE0),
+        color: const Color(0xFFF5F1EA),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFE1D7C8)),
+        border: Border.all(color: const Color(0xFFE6DED1)),
       ),
       child: Text(
         label,

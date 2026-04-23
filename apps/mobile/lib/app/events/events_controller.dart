@@ -186,6 +186,6 @@ class EventsController extends SafeChangeNotifier {
   }
 
   bool _canManageEvents(UserRole role) {
-    return role == UserRole.organizer || role == UserRole.admin;
+    return role == UserRole.organizer;
   }
 }

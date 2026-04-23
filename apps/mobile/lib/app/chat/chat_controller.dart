@@ -26,6 +26,7 @@ class ChatController extends SafeChangeNotifier {
   String? _activeConversationId;
   String? _currentUserId;
   String? _connectedAccessToken;
+  String? _activeAccessToken;
   String? _errorMessage;
 
   bool get isLoading => _isLoading;
@@ -40,6 +41,7 @@ class ChatController extends SafeChangeNotifier {
     _isLoading = true;
     _errorMessage = null;
     _currentUserId = session.user.id;
+    _activeAccessToken = session.tokens.accessToken;
     notifyListeners();
 
     try {
@@ -86,6 +88,7 @@ class ChatController extends SafeChangeNotifier {
     _isOpeningConversation = true;
     _errorMessage = null;
     _activeConversationId = conversation.id;
+    _activeMessages = const [];
     notifyListeners();
 
     try {
@@ -104,17 +107,28 @@ class ChatController extends SafeChangeNotifier {
   }
 
   Future<void> sendMessage(String body) async {
-    if (_activeConversationId == null || body.trim().isEmpty) {
+    final conversationId = _activeConversationId;
+    final accessToken = _activeAccessToken;
+    final trimmedBody = body.trim();
+
+    if (conversationId == null || accessToken == null || trimmedBody.isEmpty) {
       return;
     }
 
     _isSending = true;
+    _errorMessage = null;
     notifyListeners();
     try {
-      _socketClient.sendMessage(
-        conversationId: _activeConversationId!,
-        body: body.trim(),
+      final message = await _apiClient.sendMessage(
+        accessToken: accessToken,
+        conversationId: conversationId,
+        body: trimmedBody,
       );
+      _mergeMessage(message);
+    } catch (error) {
+      _errorMessage = error.toString();
+      notifyListeners();
+      rethrow;
     } finally {
       _isSending = false;
       notifyListeners();
@@ -142,6 +156,11 @@ class ChatController extends SafeChangeNotifier {
       return;
     }
 
+    _mergeMessage(message);
+    notifyListeners();
+  }
+
+  void _mergeMessage(ChatMessageModel message) {
     if (_activeConversationId == message.conversationId &&
         !_activeMessages.any((item) => item.id == message.id)) {
       _activeMessages = [..._activeMessages, message];
@@ -163,10 +182,6 @@ class ChatController extends SafeChangeNotifier {
       final next = [..._conversations];
       next.removeAt(index);
       _conversations = [updated, ...next];
-      notifyListeners();
-      return;
     }
-
-    notifyListeners();
   }
 }

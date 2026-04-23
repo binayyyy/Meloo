@@ -18,6 +18,7 @@ import { UserStatus } from '../common/enums/user-status.enum';
 import { AuthenticatedUser } from '../common/interfaces/authenticated-user.interface';
 import { Session } from '../users/entities';
 import { SendMessageDto } from './dto';
+import { ChatRealtimeService } from './chat-realtime.service';
 import { ChatService } from './chat.service';
 
 interface AuthenticatedSocket extends WebSocket {
@@ -42,14 +43,13 @@ export class ChatGateway
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly chatService: ChatService,
+    private readonly chatRealtimeService: ChatRealtimeService,
     @InjectRepository(Session)
     private readonly sessionsRepository: Repository<Session>,
   ) {}
 
   @WebSocketServer()
   server!: Server;
-
-  private readonly conversationRooms = new Map<string, Set<AuthenticatedSocket>>();
 
   async handleConnection(
     client: AuthenticatedSocket,
@@ -95,9 +95,7 @@ export class ChatGateway
   }
 
   handleDisconnect(client: AuthenticatedSocket): void {
-    for (const clients of this.conversationRooms.values()) {
-      clients.delete(client);
-    }
+    this.chatRealtimeService.removeClient(client);
   }
 
   @SubscribeMessage('join_conversation')
@@ -115,11 +113,7 @@ export class ChatGateway
       user.sub,
     );
 
-    if (!this.conversationRooms.has(payload.conversationId)) {
-      this.conversationRooms.set(payload.conversationId, new Set());
-    }
-
-    this.conversationRooms.get(payload.conversationId)!.add(client);
+    this.chatRealtimeService.joinConversation(payload.conversationId, client);
 
     return {
       event: 'conversation_joined',
@@ -141,7 +135,7 @@ export class ChatGateway
       body: payload.body,
     });
 
-    this.broadcastToConversation(payload.conversationId, {
+    this.chatRealtimeService.broadcastToConversation(payload.conversationId, {
       event: 'message_created',
       data: message,
     });
@@ -150,23 +144,6 @@ export class ChatGateway
       event: 'message_accepted',
       data: { accepted: true },
     };
-  }
-
-  private broadcastToConversation(
-    conversationId: string,
-    payload: Record<string, unknown>,
-  ): void {
-    const clients = this.conversationRooms.get(conversationId);
-    if (!clients) {
-      return;
-    }
-
-    const encoded = JSON.stringify(payload);
-    for (const client of clients) {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(encoded);
-      }
-    }
   }
 
   private extractToken(request: IncomingMessage): string | null {

@@ -43,8 +43,7 @@ class VendorsController extends SafeChangeNotifier {
         radiusKm: focusEvent?.vendorMatchRadiusKm,
       );
       _publicVendors = publicVendors;
-      if (session.user.role == UserRole.organizer ||
-          session.user.role == UserRole.admin) {
+      if (session.user.role == UserRole.organizer) {
         _myOrganizerRequests = await _apiClient.fetchMyOrganizerRequests(
           accessToken: session.tokens.accessToken,
         );
@@ -59,6 +58,7 @@ class VendorsController extends SafeChangeNotifier {
           accessToken: session.tokens.accessToken,
         );
       } else {
+        _myVendorProfile = null;
         _myVendorRequests = const [];
       }
     } catch (error) {

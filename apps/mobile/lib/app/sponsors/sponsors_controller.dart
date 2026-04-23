@@ -33,10 +33,8 @@ class SponsorsController extends SafeChangeNotifier {
     notifyListeners();
 
     try {
-      final shouldLoadSponsorData =
-          session.user.role == UserRole.sponsor || session.user.role == UserRole.admin;
-      final shouldLoadOrganizerData =
-          session.user.role == UserRole.organizer || session.user.role == UserRole.admin;
+      final shouldLoadSponsorData = session.user.role == UserRole.sponsor;
+      final shouldLoadOrganizerData = session.user.role == UserRole.organizer;
 
       final futures = await Future.wait([
         _apiClient.fetchOpenOpportunities(),
