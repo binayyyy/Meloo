@@ -11,7 +11,7 @@ Meloo is a multi-surface event platform with:
 - API: NestJS + TypeORM
 - Admin: Next.js
 - App: Flutter
-- Database: PostgreSQL for the committed runtime setup
+- Database: PostgreSQL with PostGIS-ready Docker runtime
 
 ## Run With Docker
 
