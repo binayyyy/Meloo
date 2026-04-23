@@ -6,7 +6,7 @@ class AuthScaffold extends StatelessWidget {
     required this.subtitle,
     required this.child,
     required this.footer,
-    this.eyebrow = 'Smart Event Hub',
+    this.eyebrow = 'Meloo network',
     this.highlights = const [],
     super.key,
   });
@@ -20,151 +20,278 @@ class AuthScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       body: DecoratedBox(
         decoration: const BoxDecoration(
-          color: Color(0xFFF4EFE6),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFF8F1E6),
+              Color(0xFFF2E5D5),
+              Color(0xFFF9F7F2),
+            ],
+          ),
         ),
         child: SafeArea(
           child: Stack(
             children: [
-              Positioned(
-                top: -140,
-                left: -80,
-                child: _GlowOrb(
-                  size: 260,
-                  color: const Color(0x1F145B52),
-                ),
+              const Positioned(
+                top: -170,
+                left: -130,
+                child: _GlowOrb(size: 360, color: Color(0x22D8A548)),
               ),
-              Positioned(
-                top: 120,
+              const Positioned(
+                top: 80,
                 right: -90,
-                child: _GlowOrb(
-                  size: 220,
-                  color: const Color(0x14C28B36),
-                ),
+                child: _GlowOrb(size: 300, color: Color(0x181AB2C4)),
               ),
-              Positioned(
-                bottom: -110,
+              const Positioned(
+                bottom: -140,
                 left: 20,
-                child: _GlowOrb(
-                  size: 240,
-                  color: const Color(0x16CC7A00),
-                ),
+                child: _GlowOrb(size: 320, color: Color(0x14132A4A)),
+              ),
+              const Positioned(
+                bottom: 120,
+                right: -80,
+                child: _GlowOrb(size: 240, color: Color(0x1AD8A548)),
               ),
               Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 460),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFFCF8),
-                        borderRadius: BorderRadius.circular(32),
-                        border: Border.all(color: const Color(0xFFD9D0C3)),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x1A1F1A14),
-                            blurRadius: 40,
-                            offset: Offset(0, 18),
-                          ),
-                        ],
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE5F0EC),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                eyebrow,
-                                style: const TextStyle(
-                                  color: Color(0xFF145B52),
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            Text(
-                              title,
-                              style: const TextStyle(
-                                fontSize: 34,
-                                fontWeight: FontWeight.w900,
-                                height: 1.02,
-                                letterSpacing: -0.6,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              subtitle,
-                              style: const TextStyle(
-                                color: Color(0xFF5E5A54),
-                                fontSize: 15,
-                                height: 1.55,
-                              ),
-                            ),
-                            if (highlights.isNotEmpty) ...[
-                              const SizedBox(height: 18),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: highlights
-                                    .map(
-                                      (item) => Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 8,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF2ECE1),
-                                          borderRadius: BorderRadius.circular(999),
-                                          border: Border.all(
-                                            color: const Color(0xFFE3D9CA),
-                                          ),
-                                        ),
-                                        child: Text(
-                                          item,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            color: Color(0xFF403A32),
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                    .toList(growable: false),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1080),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final compact = constraints.maxWidth < 820;
+                        return DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(38),
+                            border: Border.all(color: const Color(0x1F5C4530)),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x241F160F),
+                                blurRadius: 50,
+                                offset: Offset(0, 24),
                               ),
                             ],
-                            const SizedBox(height: 28),
-                            child,
-                            const SizedBox(height: 24),
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.only(top: 18),
-                              decoration: const BoxDecoration(
-                                border: Border(
-                                  top: BorderSide(color: Color(0xFFE7DDCF)),
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.all(compact ? 20 : 28),
+                            child: Flex(
+                              direction: compact ? Axis.vertical : Axis.horizontal,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: LayoutBuilder(
+                                    builder: (context, _) {
+                                      return DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(32),
+                                          gradient: const LinearGradient(
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                            colors: [
+                                              Color(0xFF0F1F3C),
+                                              Color(0xFF163C64),
+                                              Color(0xFF5D5A4F),
+                                            ],
+                                          ),
+                                          boxShadow: const [
+                                            BoxShadow(
+                                              color: Color(0x261F160F),
+                                              blurRadius: 38,
+                                              offset: Offset(0, 20),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Padding(
+                                          padding: EdgeInsets.all(compact ? 22 : 28),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              const _BrandLockup(),
+                                              SizedBox(
+                                                height: compact ? 96 : 180,
+                                              ),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 12,
+                                                  vertical: 8,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white
+                                                      .withValues(alpha: 0.08),
+                                                  borderRadius:
+                                                      BorderRadius.circular(999),
+                                                  border: Border.all(
+                                                    color: Colors.white
+                                                        .withValues(alpha: 0.12),
+                                                  ),
+                                                ),
+                                                child: Text(
+                                                  eyebrow,
+                                                  style: const TextStyle(
+                                                    color: Color(0xFFF8F3EA),
+                                                    fontWeight: FontWeight.w800,
+                                                    letterSpacing: 0.4,
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 18),
+                                              const Text(
+                                                'Live events,\ncleanly connected.',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 34,
+                                                  height: 1.02,
+                                                  fontWeight: FontWeight.w900,
+                                                  letterSpacing: -0.9,
+                                                ),
+                                              ),
+                                              if (highlights.isNotEmpty) ...[
+                                                const SizedBox(height: 20),
+                                                Wrap(
+                                                  spacing: 10,
+                                                  runSpacing: 10,
+                                                  children: highlights
+                                                      .take(compact ? 2 : 4)
+                                                      .map(
+                                                        (item) => _FeatureChip(
+                                                          label: item,
+                                                        ),
+                                                      )
+                                                      .toList(growable: false),
+                                                ),
+                                              ],
+                                              const SizedBox(height: 20),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 ),
-                              ),
-                              child: footer,
+                                SizedBox(
+                                  width: compact ? 0 : 26,
+                                  height: compact ? 20 : 0,
+                                ),
+                                Expanded(
+                                  child: Padding(
+                                    padding: EdgeInsets.only(
+                                      left: compact ? 0 : 4,
+                                      top: compact ? 2 : 4,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          title,
+                                          style: theme.textTheme.displaySmall
+                                              ?.copyWith(
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: -1.1,
+                                            color: const Color(0xFF18161F),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          subtitle,
+                                          style: theme.textTheme.bodyLarge
+                                              ?.copyWith(
+                                            color: const Color(0xFF625867),
+                                            height: 1.68,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 28),
+                                        child,
+                                        const SizedBox(height: 24),
+                                        Container(
+                                          width: double.infinity,
+                                          padding: const EdgeInsets.only(top: 18),
+                                          decoration: const BoxDecoration(
+                                            border: Border(
+                                              top: BorderSide(
+                                                color: Color(0x1F5C4530),
+                                              ),
+                                            ),
+                                          ),
+                                          child: footer,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                          ),
+                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BrandLockup extends StatelessWidget {
+  const _BrandLockup();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Image.asset(
+          'assets/branding/meloo-logo-v1.png',
+          height: 52,
+          fit: BoxFit.contain,
+          semanticLabel: 'Meloo',
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'Live event discovery and operations',
+          style: TextStyle(
+            color: Color(0xFFD8E2E6),
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FeatureChip extends StatelessWidget {
+  const _FeatureChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );

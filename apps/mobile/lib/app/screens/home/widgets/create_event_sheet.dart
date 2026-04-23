@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 import '../../../events/event_models.dart';
+import '../../../uploads/upload_models.dart';
+import '../../../widgets/location_map_field.dart';
+import '../../../widgets/upload_field_card.dart';
 
 class CreateEventSheet extends StatefulWidget {
   const CreateEventSheet({
+    required this.accessToken,
     required this.categories,
     required this.onSubmit,
     required this.isSubmitting,
     super.key,
   });
 
+  final String accessToken;
   final List<EventCategoryModel> categories;
   final Future<void> Function(EventCreateRequest request) onSubmit;
   final bool isSubmitting;
@@ -21,12 +27,16 @@ class _CreateEventSheetState extends State<CreateEventSheet> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _coverImageUrlController = TextEditingController();
   final _venueController = TextEditingController();
   final _cityController = TextEditingController();
   DateTime? _startAt;
   DateTime? _endAt;
   String? _categoryId;
   bool _publishImmediately = true;
+  double? _latitude;
+  double? _longitude;
+  double _vendorMatchRadiusKm = 60;
 
   @override
   void initState() {
@@ -40,6 +50,7 @@ class _CreateEventSheetState extends State<CreateEventSheet> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _coverImageUrlController.dispose();
     _venueController.dispose();
     _cityController.dispose();
     super.dispose();
@@ -110,9 +121,16 @@ class _CreateEventSheetState extends State<CreateEventSheet> {
         categoryId: _categoryId!,
         venue: _venueController.text.trim(),
         city: _cityController.text.trim(),
+        latitude: _latitude,
+        longitude: _longitude,
+        vendorMatchRadiusKm:
+            _latitude != null && _longitude != null ? _vendorMatchRadiusKm : null,
         startAt: _startAt!,
         endAt: _endAt!,
         publishImmediately: _publishImmediately,
+        coverImageUrl: _coverImageUrlController.text.trim().isEmpty
+            ? null
+            : _coverImageUrlController.text.trim(),
       ),
     );
 
@@ -142,6 +160,16 @@ class _CreateEventSheetState extends State<CreateEventSheet> {
               const Text(
                 'Start with the operational details. Tickets, vendors, and sponsorships will attach to the event later.',
                 style: TextStyle(color: Color(0xFF5F645F), height: 1.5),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Use a live uploaded image URL if you want the event to launch with a banner immediately.',
+                style: TextStyle(color: Color(0xFF7A7369), height: 1.5),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Set the event location on the map to rank vendors by real distance instead of city name alone.',
+                style: TextStyle(color: Color(0xFF7A7369), height: 1.5),
               ),
               const SizedBox(height: 20),
               TextFormField(
@@ -189,6 +217,16 @@ class _CreateEventSheetState extends State<CreateEventSheet> {
                     : null,
               ),
               const SizedBox(height: 16),
+              UploadFieldCard(
+                label: 'Cover image',
+                accessToken: widget.accessToken,
+                controller: _coverImageUrlController,
+                kind: UploadAssetKind.image,
+                helper:
+                    'Upload the event banner directly here or paste an existing asset URL.',
+                previewHeight: 160,
+              ),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _venueController,
                 decoration: const InputDecoration(
@@ -207,6 +245,22 @@ class _CreateEventSheetState extends State<CreateEventSheet> {
                 ),
                 validator: (value) =>
                     value == null || value.trim().isEmpty ? 'City is required' : null,
+              ),
+              const SizedBox(height: 16),
+              LocationMapField(
+                label: 'Event map location',
+                helper:
+                    'Tap the map to place the venue area. Meloo uses this point to sort nearby vendors for the event.',
+                radiusLabel: 'Vendor match radius',
+                initialLatitude: _latitude,
+                initialLongitude: _longitude,
+                initialRadiusKm: _vendorMatchRadiusKm,
+                defaultCenter: const LatLng(27.7172, 85.3240),
+                onChanged: (selection) {
+                  _latitude = selection.latitude;
+                  _longitude = selection.longitude;
+                  _vendorMatchRadiusKm = selection.radiusKm;
+                },
               ),
               const SizedBox(height: 16),
               _DateField(
@@ -282,4 +336,3 @@ class _DateField extends StatelessWidget {
     );
   }
 }
-

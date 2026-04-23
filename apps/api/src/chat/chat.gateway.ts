@@ -10,9 +10,13 @@ import {
 } from '@nestjs/websockets';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
 import { IncomingMessage } from 'http';
+import { MoreThan, Repository } from 'typeorm';
 import { Server, WebSocket } from 'ws';
+import { UserStatus } from '../common/enums/user-status.enum';
 import { AuthenticatedUser } from '../common/interfaces/authenticated-user.interface';
+import { Session } from '../users/entities';
 import { SendMessageDto } from './dto';
 import { ChatService } from './chat.service';
 
@@ -38,6 +42,8 @@ export class ChatGateway
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly chatService: ChatService,
+    @InjectRepository(Session)
+    private readonly sessionsRepository: Repository<Session>,
   ) {}
 
   @WebSocketServer()
@@ -56,11 +62,33 @@ export class ChatGateway
     }
 
     try {
-      client.user = await this.jwtService.verifyAsync<AuthenticatedUser>(token, {
+      const payload = await this.jwtService.verifyAsync<AuthenticatedUser>(token, {
         secret: this.configService.getOrThrow<string>('auth.jwtSecret'),
         issuer: this.configService.get<string>('auth.jwtIssuer'),
         audience: this.configService.get<string>('auth.jwtAudience'),
       });
+
+      const session = await this.sessionsRepository.findOne({
+        where: {
+          id: payload.sessionId,
+          userId: payload.sub,
+          expiresAt: MoreThan(new Date()),
+        },
+        relations: {
+          user: true,
+        },
+      });
+
+      if (
+        !session ||
+        session.user.status === UserStatus.SUSPENDED ||
+        session.user.status === UserStatus.DEACTIVATED
+      ) {
+        client.close(4001, 'Session is no longer active');
+        return;
+      }
+
+      client.user = payload;
     } catch {
       client.close(4001, 'Invalid access token');
     }

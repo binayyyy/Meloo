@@ -1,6 +1,7 @@
 import { Body, Controller, Headers, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
+  BootstrapLocalAdminDto,
   ForgotPasswordDto,
   ForgotPasswordResponseDto,
   LoginDto,
@@ -15,6 +16,15 @@ import {
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Post('bootstrap-local-admin')
+  bootstrapLocalAdmin(
+    @Body() dto: BootstrapLocalAdminDto,
+    @Headers('x-setup-key') setupKey?: string,
+    @Headers('user-agent') userAgent?: string,
+  ): Promise<AuthResponseDto> {
+    return this.authService.bootstrapLocalAdmin(dto, setupKey, userAgent);
+  }
 
   @Post('signup')
   signUp(
@@ -54,4 +64,3 @@ export class AuthController {
     return this.authService.resetPassword(dto);
   }
 }
-

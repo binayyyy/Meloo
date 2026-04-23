@@ -1,12 +1,12 @@
 import 'dart:convert';
-import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../core/safe_change_notifier.dart';
 import 'auth_api_client.dart';
 import 'auth_models.dart';
 
 enum AuthStatus { loading, unauthenticated, authenticated }
 
-class AuthController extends ChangeNotifier {
+class AuthController extends SafeChangeNotifier {
   AuthController({AuthApiClient? apiClient})
       : _apiClient = apiClient ?? AuthApiClient();
 

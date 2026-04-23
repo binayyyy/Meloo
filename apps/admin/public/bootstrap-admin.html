@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Admin Bootstrap</title>
+    <title>Meloo Admin Access</title>
   </head>
   <body>
     <script>
@@ -13,7 +13,7 @@
 
       if (tokenB64) {
         const token = decodeURIComponent(escape(window.atob(tokenB64)));
-        window.localStorage.setItem('smart-event-admin-token', token);
+        window.localStorage.setItem('melo-admin-token', token);
       }
 
       window.location.replace(redirect);

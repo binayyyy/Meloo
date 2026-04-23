@@ -13,8 +13,19 @@ class VendorsApiClient {
 
   final http.Client _client;
 
-  Future<List<VendorProfileModel>> fetchPublicVendors() async {
-    final response = await _client.get(Uri.parse('$_baseUrl/vendors'));
+  Future<List<VendorProfileModel>> fetchPublicVendors({
+    double? latitude,
+    double? longitude,
+    double? radiusKm,
+  }) async {
+    final uri = Uri.parse('$_baseUrl/vendors').replace(
+      queryParameters: {
+        if (latitude != null) 'latitude': latitude.toString(),
+        if (longitude != null) 'longitude': longitude.toString(),
+        if (radiusKm != null) 'radiusKm': radiusKm.toString(),
+      },
+    );
+    final response = await _client.get(uri);
     return _decodeList(response)
         .map((item) => VendorProfileModel.fromJson(item))
         .toList(growable: false);

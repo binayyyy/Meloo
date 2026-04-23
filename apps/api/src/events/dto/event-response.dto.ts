@@ -9,6 +9,9 @@ export class EventResponseDto {
   category!: EventCategoryResponseDto;
   venue!: string;
   city!: string;
+  latitude!: number | null;
+  longitude!: number | null;
+  vendorMatchRadiusKm!: number | null;
   startAt!: Date;
   endAt!: Date;
   status!: EventStatus;
@@ -17,4 +20,3 @@ export class EventResponseDto {
   createdAt!: Date;
   updatedAt!: Date;
 }
-

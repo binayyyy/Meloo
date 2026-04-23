@@ -6,6 +6,7 @@ import { Event } from '../events/entities';
 import { SupportModule } from '../support/support.module';
 import { Escalation, SupportTicket } from '../support/entities';
 import { SponsorProfile } from '../sponsors/entities';
+import { Session, User } from '../users/entities';
 import { VendorsModule } from '../vendors/vendors.module';
 import { VendorProfile } from '../vendors/entities';
 import { AdminController } from './admin.controller';
@@ -23,6 +24,8 @@ import { AdminService } from './admin.service';
       SponsorProfile,
       SupportTicket,
       Escalation,
+      User,
+      Session,
     ]),
   ],
   controllers: [AdminController],

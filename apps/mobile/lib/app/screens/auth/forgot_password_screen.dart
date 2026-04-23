@@ -51,13 +51,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final authController = AuthScope.of(context);
 
     return AuthScaffold(
-      eyebrow: 'Account recovery',
+      eyebrow: 'Password reset',
       title: 'Reset password',
       subtitle:
-          'We will prepare a password reset token for the requested account. In non-production environments, the generated token is shown directly.',
+          'Request a reset for your Meloo account. Local builds still show the debug token for testing.',
       highlights: const [
         'Secure reset',
-        'Non-production token preview',
+        'Debug token in local',
       ],
       footer: Align(
         alignment: Alignment.centerLeft,
@@ -113,7 +113,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       child: Text(
                         authController.isLoading
                             ? 'Preparing reset...'
-                            : 'Request reset token',
+                            : 'Request password reset',
                       ),
                     ),
                   ),

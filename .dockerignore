@@ -1,0 +1,13 @@
+.git
+.gitignore
+.codex
+.tooling
+artifacts
+coverage
+node_modules
+apps/mobile
+apps/admin/.next
+apps/api/dist
+**/*.log
+**/*.tsbuildinfo
+**/.DS_Store

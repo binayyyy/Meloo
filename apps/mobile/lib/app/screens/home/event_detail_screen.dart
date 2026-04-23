@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import '../../events/event_detail_controller.dart';
 import '../../events/event_models.dart';
@@ -255,6 +257,24 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     return null;
   }
 
+  Future<void> _openExternalMap(EventModel event) async {
+    final lat = event.latitude;
+    final lng = event.longitude;
+    final query = lat != null && lng != null
+        ? '$lat,$lng'
+        : Uri.encodeComponent('${event.venue}, ${event.city}');
+    final url = 'https://www.google.com/maps/search/?api=1&query=$query';
+    final launched = await launchUrlString(
+      url,
+      mode: LaunchMode.platformDefault,
+    );
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open maps')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = AuthScope.of(context).session;
@@ -396,6 +416,18 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                     ],
                   ),
                 ),
+                if (event.latitude != null && event.longitude != null) ...[
+                  const SizedBox(height: 16),
+                  _Panel(
+                    title: 'Map',
+                    icon: Icons.map_rounded,
+                    accent: const Color(0xFF145B52),
+                    child: _EventMapCard(
+                      event: event,
+                      onOpenMaps: () => _openExternalMap(event),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 _Panel(
                   title: 'Event story',
@@ -487,19 +519,8 @@ class _DetailHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF183F3B),
-            Color(0xFF23554D),
-            Color(0xFF9C6832),
-          ],
-        ),
-        border: Border.all(color: const Color(0x14FFFFFF)),
         boxShadow: const [
           BoxShadow(
             color: Color(0x24163E3A),
@@ -508,57 +529,120 @@ class _DetailHero extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0x1AFFFFFF),
-              borderRadius: BorderRadius.circular(999),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: event.coverImageUrl != null && event.coverImageUrl!.isNotEmpty
+                  ? Image.network(
+                      event.coverImageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const SizedBox.expand(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Color(0xFF132A4A),
+                                  Color(0xFF1A4C74),
+                                  Color(0xFF8A6A37),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    )
+                  : const SizedBox.expand(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Color(0xFF132A4A),
+                              Color(0xFF1A4C74),
+                              Color(0xFF8A6A37),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
             ),
-            child: Text(
-              event.category.name.toUpperCase(),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.7,
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      const Color(0xFF10223F).withValues(alpha: 0.24),
+                      const Color(0xFF10223F).withValues(alpha: 0.9),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            event.title,
-            style: const TextStyle(
-              fontSize: 30,
-              height: 1.02,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            '${event.venue}, ${event.city}',
-            style: const TextStyle(
-              color: Color(0xFFE6F0EE),
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _MetaBadge(label: _formatWindow(event)),
-              _MetaBadge(label: '${event.status} / ${event.visibility}'),
-              _MetaBadge(
-                label: manageMode
-                    ? '$ticketCount ticket lane${ticketCount == 1 ? '' : 's'}'
-                    : 'Stripe-ready checkout',
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0x1AFFFFFF),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      event.category.name.toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.7,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    event.title,
+                    style: const TextStyle(
+                      fontSize: 30,
+                      height: 1.02,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '${event.venue}, ${event.city}',
+                    style: const TextStyle(
+                      color: Color(0xFFE6F0EE),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      _MetaBadge(label: _formatWindow(event)),
+                      _MetaBadge(label: '${event.status} / ${event.visibility}'),
+                      _MetaBadge(
+                        label: manageMode
+                            ? '$ticketCount ticket lane${ticketCount == 1 ? '' : 's'}'
+                            : 'Stripe-ready checkout',
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -566,6 +650,122 @@ class _DetailHero extends StatelessWidget {
   String _formatWindow(EventModel event) {
     String two(int value) => value.toString().padLeft(2, '0');
     return '${two(event.startAt.day)}/${two(event.startAt.month)}/${event.startAt.year} ${two(event.startAt.hour)}:${two(event.startAt.minute)}';
+  }
+}
+
+class _EventMapCard extends StatelessWidget {
+  const _EventMapCard({
+    required this.event,
+    required this.onOpenMaps,
+  });
+
+  final EventModel event;
+  final VoidCallback onOpenMaps;
+
+  @override
+  Widget build(BuildContext context) {
+    final latitude = event.latitude;
+    final longitude = event.longitude;
+    if (latitude == null || longitude == null) {
+      return Text(
+        '${event.venue}, ${event.city}',
+        style: const TextStyle(
+          color: Color(0xFF5F645F),
+          height: 1.5,
+        ),
+      );
+    }
+
+    final point = LatLng(latitude, longitude);
+    final radiusKm = event.vendorMatchRadiusKm;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: SizedBox(
+            height: 220,
+            child: FlutterMap(
+              options: MapOptions(
+                initialCenter: point,
+                initialZoom: 12.8,
+                interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.drag | InteractiveFlag.pinchZoom,
+                ),
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'local.meloo.app',
+                ),
+                if (radiusKm != null && radiusKm > 0)
+                  CircleLayer(
+                    circles: [
+                      CircleMarker(
+                        point: point,
+                        radius: radiusKm * 1000,
+                        useRadiusInMeter: true,
+                        color: const Color(0x26145B52),
+                        borderColor: const Color(0xFF145B52),
+                        borderStrokeWidth: 2,
+                      ),
+                    ],
+                  ),
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: point,
+                      width: 52,
+                      height: 52,
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF132A4A),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0x30132A4A),
+                              blurRadius: 12,
+                              offset: Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.place_rounded,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            _MetaBadge(label: event.venue),
+            _MetaBadge(label: event.city),
+            _MetaBadge(
+              label:
+                  '${latitude.toStringAsFixed(4)}, ${longitude.toStringAsFixed(4)}',
+            ),
+            if (radiusKm != null && radiusKm > 0)
+              _MetaBadge(label: '${radiusKm.toStringAsFixed(0)} km match'),
+          ],
+        ),
+        const SizedBox(height: 14),
+        OutlinedButton.icon(
+          onPressed: onOpenMaps,
+          icon: const Icon(Icons.near_me_rounded),
+          label: const Text('Open in maps'),
+        ),
+      ],
+    );
   }
 }
 

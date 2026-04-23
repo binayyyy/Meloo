@@ -2,7 +2,12 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { WsAdapter } from '@nestjs/platform-ws';
+import { mkdirSync } from 'fs';
 import { AppModule } from './app.module';
+
+const express = require('express') as {
+  static: (root: string) => unknown;
+};
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -12,12 +17,18 @@ async function bootstrap() {
   const apiPrefix = configService.get<string>('app.apiPrefix', 'api');
   const port = configService.get<number>('app.port', 3000);
   const corsOrigin = configService.get<string>('app.corsOrigin', '*');
+  const uploadsDirectory = configService.get<string>(
+    'uploads.directory',
+    `${process.cwd()}/.tooling/uploads`,
+  );
 
   app.setGlobalPrefix(apiPrefix);
   app.enableCors({
     origin: corsOrigin === '*' ? true : corsOrigin,
     credentials: true,
   });
+  mkdirSync(uploadsDirectory, { recursive: true });
+  app.use('/uploads', express.static(uploadsDirectory));
   app.useWebSocketAdapter(new WsAdapter(app));
   app.useGlobalPipes(
     new ValidationPipe({

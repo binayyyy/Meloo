@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import '../core/safe_change_notifier.dart';
 import '../session/auth_models.dart';
 import 'chat_api_client.dart';
 import 'chat_models.dart';
 import 'chat_socket_client.dart';
 
-class ChatController extends ChangeNotifier {
+class ChatController extends SafeChangeNotifier {
   ChatController({
     ChatApiClient? apiClient,
     ChatSocketClient? socketClient,

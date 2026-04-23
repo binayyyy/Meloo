@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart';
+import '../core/safe_change_notifier.dart';
 import '../session/auth_models.dart';
 import 'ai_api_client.dart';
 import 'ai_models.dart';
 
-class AiController extends ChangeNotifier {
+class AiController extends SafeChangeNotifier {
   AiController({AiApiClient? apiClient})
       : _apiClient = apiClient ?? AiApiClient();
 

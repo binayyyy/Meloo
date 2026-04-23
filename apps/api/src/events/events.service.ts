@@ -11,6 +11,7 @@ import { Repository, SelectQueryBuilder } from 'typeorm';
 import { NotificationType } from '../notifications/entities';
 import { NotificationsService } from '../notifications/notifications.service';
 import { Role } from '../common/enums/role.enum';
+import { toNullableNumber } from '../common/utils/distance.util';
 import { TicketType } from '../registrations/entities';
 import {
   CreateEventCategoryDto,
@@ -202,6 +203,13 @@ export class EventsService implements OnModuleInit {
         categoryId: dto.categoryId,
         venue: dto.venue.trim(),
         city: dto.city.trim(),
+        latitude: this.formatOptionalCoordinate(dto.latitude),
+        longitude: this.formatOptionalCoordinate(dto.longitude),
+        vendorMatchRadiusKm: this.formatOptionalRadius(
+          dto.vendorMatchRadiusKm,
+          dto.latitude,
+          dto.longitude,
+        ),
         startAt: new Date(dto.startAt),
         endAt: new Date(dto.endAt),
         status: dto.status ?? EventStatus.DRAFT,
@@ -263,6 +271,17 @@ export class EventsService implements OnModuleInit {
     if (dto.city != null) {
       event.city = dto.city.trim();
     }
+    const nextLatitude = dto.latitude ?? toNullableNumber(event.latitude);
+    const nextLongitude = dto.longitude ?? toNullableNumber(event.longitude);
+    const nextVendorMatchRadiusKm =
+      dto.vendorMatchRadiusKm ?? toNullableNumber(event.vendorMatchRadiusKm);
+    event.latitude = this.formatOptionalCoordinate(nextLatitude);
+    event.longitude = this.formatOptionalCoordinate(nextLongitude);
+    event.vendorMatchRadiusKm = this.formatOptionalRadius(
+      nextVendorMatchRadiusKm,
+      nextLatitude,
+      nextLongitude,
+    );
     if (dto.startAt != null) {
       event.startAt = new Date(dto.startAt);
     }
@@ -375,6 +394,9 @@ export class EventsService implements OnModuleInit {
       },
       venue: event.venue,
       city: event.city,
+      latitude: toNullableNumber(event.latitude),
+      longitude: toNullableNumber(event.longitude),
+      vendorMatchRadiusKm: toNullableNumber(event.vendorMatchRadiusKm),
       startAt: event.startAt,
       endAt: event.endAt,
       status: event.status,
@@ -451,5 +473,39 @@ export class EventsService implements OnModuleInit {
         },
       );
     }
+  }
+
+  private formatOptionalCoordinate(value: number | null | undefined): string | null {
+    if (value == null) {
+      return null;
+    }
+
+    return value.toFixed(6);
+  }
+
+  private formatOptionalRadius(
+    radiusKm: number | null | undefined,
+    latitude: number | null | undefined,
+    longitude: number | null | undefined,
+  ): string | null {
+    const hasLatitude = latitude != null;
+    const hasLongitude = longitude != null;
+
+    if (hasLatitude !== hasLongitude) {
+      throw new BadRequestException(
+        'Event location requires both latitude and longitude',
+      );
+    }
+
+    if (!hasLatitude) {
+      if (radiusKm != null) {
+        throw new BadRequestException(
+          'Vendor match radius requires an event location',
+        );
+      }
+      return null;
+    }
+
+    return (radiusKm ?? 60).toFixed(2);
   }
 }

@@ -1,6 +1,6 @@
 {
-    "name": "smart_event_mobile",
-    "short_name": "smart_event_mobile",
+    "name": "Meloo",
+    "short_name": "Meloo",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart';
+import '../core/safe_change_notifier.dart';
 import '../session/auth_models.dart';
 import 'payment_models.dart';
 import 'payments_api_client.dart';
 
-class PaymentsController extends ChangeNotifier {
+class PaymentsController extends SafeChangeNotifier {
   PaymentsController({PaymentsApiClient? apiClient})
       : _apiClient = apiClient ?? PaymentsApiClient();
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 import '../../ai/ai_controller.dart';
 import '../../ai/ai_models.dart';
 import '../../chat/chat_controller.dart';
@@ -43,7 +44,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
   final AiController _aiController = AiController();
   final ChatController _chatController = ChatController();
   final EventsController _eventsController = EventsController();
-  final NotificationsController _notificationsController = NotificationsController();
+  final NotificationsController _notificationsController =
+      NotificationsController();
   final PaymentsController _paymentsController = PaymentsController();
   final SupportController _supportController = SupportController();
   final SponsorsController _sponsorsController = SponsorsController();
@@ -86,21 +88,26 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
   }
 
   Future<void> _loadAll(AuthSession session) async {
+    await _eventsController.load(session);
+
     await Future.wait([
       _chatController.load(session),
-      _eventsController.load(session),
       _notificationsController.load(session),
-      if (session.user.role == UserRole.attendee || session.user.role == UserRole.admin)
+      if (session.user.role == UserRole.attendee ||
+          session.user.role == UserRole.admin)
         _paymentsController.load(session),
       _supportController.load(session),
       _sponsorsController.load(session),
-      _vendorsController.load(session),
     ]);
 
-    final organizerEventId = _eventsController.myEvents.isNotEmpty
-        ? _eventsController.myEvents.first.id
+    final organizerFocusEvent = _eventsController.myEvents.isNotEmpty
+        ? _eventsController.myEvents.first
         : null;
-    await _aiController.load(session, organizerEventId: organizerEventId);
+    await _vendorsController.load(session, focusEvent: organizerFocusEvent);
+    await _aiController.load(
+      session,
+      organizerEventId: organizerFocusEvent?.id,
+    );
   }
 
   Future<void> _maybePresentDemoSheet(AuthSession session) async {
@@ -200,6 +207,7 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
           animation: _eventsController,
           builder: (context, _) {
             return CreateEventSheet(
+              accessToken: session.tokens.accessToken,
               categories: _eventsController.categories,
               isSubmitting: _eventsController.isSubmitting,
               onSubmit: (request) async {
@@ -222,7 +230,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
                   messenger.showSnackBar(
                     SnackBar(
                       content: Text(
-                        _eventsController.errorMessage ?? 'Event creation failed',
+                        _eventsController.errorMessage ??
+                            'Event creation failed',
                       ),
                     ),
                   );
@@ -246,16 +255,19 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
           animation: _vendorsController,
           builder: (context, _) {
             return VendorProfileSheet(
+              accessToken: session.tokens.accessToken,
               initialProfile: _vendorsController.myVendorProfile,
               isSubmitting: _vendorsController.isSubmitting,
               onSubmit: (request) async {
                 try {
-                  await _vendorsController.upsertMyVendorProfile(session, request);
+                  await _vendorsController.upsertMyVendorProfile(
+                      session, request);
                   if (mounted) {
                     messenger.showSnackBar(
                       SnackBar(
                         content: Text(
-                          _vendorsController.successMessage ?? 'Profile updated',
+                          _vendorsController.successMessage ??
+                              'Profile updated',
                         ),
                       ),
                     );
@@ -265,7 +277,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
                     messenger.showSnackBar(
                       SnackBar(
                         content: Text(
-                          _vendorsController.errorMessage ?? 'Profile update failed',
+                          _vendorsController.errorMessage ??
+                              'Profile update failed',
                         ),
                       ),
                     );
@@ -280,6 +293,7 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
   }
 
   Future<void> _openEditProfileSheet(AuthSession session) async {
+    final authController = AuthScope.of(context);
     final messenger = ScaffoldMessenger.of(context);
     await showModalBottomSheet<void>(
       context: context,
@@ -287,33 +301,21 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
       showDragHandle: true,
       builder: (context) {
         return AnimatedBuilder(
-          animation: AuthScope.of(context),
+          animation: authController,
           builder: (context, _) {
-            final authController = AuthScope.of(context);
             final currentUser = authController.session?.user ?? session.user;
             return EditProfileSheet(
+              accessToken: session.tokens.accessToken,
               user: currentUser,
               onSubmit: (profile, settings) async {
-                try {
-                  await authController.updateMe(
-                    profile: profile,
-                    settings: settings,
+                await authController.updateMe(
+                  profile: profile,
+                  settings: settings,
+                );
+                if (mounted) {
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('Profile updated')),
                   );
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      const SnackBar(content: Text('Profile updated')),
-                    );
-                  }
-                } on ApiException {
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          authController.errorMessage ?? 'Profile update failed',
-                        ),
-                      ),
-                    );
-                  }
                 }
               },
             );
@@ -337,7 +339,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
               isSubmitting: _vendorsController.isSubmitting,
               onSubmit: (request) async {
                 try {
-                  await _vendorsController.createVendorService(session, request);
+                  await _vendorsController.createVendorService(
+                      session, request);
                   if (mounted) {
                     messenger.showSnackBar(
                       SnackBar(
@@ -352,7 +355,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
                     messenger.showSnackBar(
                       SnackBar(
                         content: Text(
-                          _vendorsController.errorMessage ?? 'Service creation failed',
+                          _vendorsController.errorMessage ??
+                              'Service creation failed',
                         ),
                       ),
                     );
@@ -380,7 +384,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
               isSubmitting: _vendorsController.isSubmitting,
               onSubmit: (request) async {
                 try {
-                  await _vendorsController.createVendorPackage(session, request);
+                  await _vendorsController.createVendorPackage(
+                      session, request);
                   if (mounted) {
                     messenger.showSnackBar(
                       SnackBar(
@@ -395,7 +400,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
                     messenger.showSnackBar(
                       SnackBar(
                         content: Text(
-                          _vendorsController.errorMessage ?? 'Package creation failed',
+                          _vendorsController.errorMessage ??
+                              'Package creation failed',
                         ),
                       ),
                     );
@@ -416,7 +422,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
     final messenger = ScaffoldMessenger.of(context);
     if (_eventsController.myEvents.isEmpty) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Create an event before contacting vendors')),
+        const SnackBar(
+            content: Text('Create an event before contacting vendors')),
       );
       return;
     }
@@ -444,7 +451,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
                     messenger.showSnackBar(
                       SnackBar(
                         content: Text(
-                          _vendorsController.successMessage ?? 'Vendor request sent',
+                          _vendorsController.successMessage ??
+                              'Vendor request sent',
                         ),
                       ),
                     );
@@ -573,6 +581,7 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
           animation: _sponsorsController,
           builder: (context, _) {
             return SponsorProfileSheet(
+              accessToken: session.tokens.accessToken,
               initialProfile: _sponsorsController.mySponsorProfile,
               isSubmitting: _sponsorsController.isSubmitting,
               onSubmit: (request) async {
@@ -810,11 +819,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
             animation: _chatController,
             builder: (context, _) {
               return _ChatConversationSheet(
-                title:
-                    title ??
-                    _chatController
-                        .counterpartFor(conversation)
-                        ?.displayName ??
+                title: title ??
+                    _chatController.counterpartFor(conversation)?.displayName ??
                     'Conversation',
                 messages: _chatController.activeMessages,
                 currentUserId: session.user.id,
@@ -857,25 +863,36 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
     final heroMetrics = _heroMetricsForRole(user.role);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4EFE6),
+      backgroundColor: const Color(0xFFF2F5F9),
       appBar: AppBar(
         toolbarHeight: 76,
         titleSpacing: 20,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        title: Row(
           children: [
-            const Text(
-              'Smart Event Hub',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+            Image.asset(
+              'assets/branding/meloo-mark-v1.png',
+              width: 34,
+              height: 34,
+              fit: BoxFit.contain,
             ),
-            const SizedBox(height: 2),
-            Text(
-              '${user.role.name} workspace',
-              style: const TextStyle(
-                color: Color(0xFF6A6258),
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Meloo',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _workspaceLabelForRole(user.role),
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -900,8 +917,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
         },
         height: 74,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        backgroundColor: const Color(0xFFFFFBF6),
-        indicatorColor: const Color(0x1F145B52),
+        backgroundColor: const Color(0xFFF8FBFE),
+        indicatorColor: const Color(0x1F1E9C8B),
         destinations: _navigationForRole(user.role)
             .map(
               (item) => NavigationDestination(
@@ -977,14 +994,13 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
             _HeroCard(
               roleLabel: user.role.name,
               headline: _headlineForRole(user.role),
-              supporting: '${_bodyForRole(user.role)}\nSigned in as ${user.email}',
+              supporting: '${_bodyForRole(user.role)}  ${user.email}',
               metrics: heroMetrics,
               palette: palette,
             ),
             const SizedBox(height: 16),
             _RoleLeadPanel(
               title: navigation.headline,
-              description: navigation.description,
               actions: _quickActionsForRole(session, user.role),
               signals: _leadSignalsForRole(user.role),
               palette: palette,
@@ -1000,9 +1016,11 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
   List<Widget> _buildSystemBanners() {
     final banners = <_BannerMessage>[
       if (_eventsController.errorMessage != null)
-        _BannerMessage(_eventsController.errorMessage!, const Color(0xFFB3261E)),
+        _BannerMessage(
+            _eventsController.errorMessage!, const Color(0xFFB3261E)),
       if (_eventsController.successMessage != null)
-        _BannerMessage(_eventsController.successMessage!, const Color(0xFF0E6B5C)),
+        _BannerMessage(
+            _eventsController.successMessage!, const Color(0xFF0E6B5C)),
       if (_chatController.errorMessage != null)
         _BannerMessage(_chatController.errorMessage!, const Color(0xFFB3261E)),
       if (_aiController.errorMessage != null)
@@ -1013,21 +1031,29 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
           const Color(0xFFB3261E),
         ),
       if (_supportController.errorMessage != null)
-        _BannerMessage(_supportController.errorMessage!, const Color(0xFFB3261E)),
+        _BannerMessage(
+            _supportController.errorMessage!, const Color(0xFFB3261E)),
       if (_supportController.successMessage != null)
-        _BannerMessage(_supportController.successMessage!, const Color(0xFF0E6B5C)),
+        _BannerMessage(
+            _supportController.successMessage!, const Color(0xFF0E6B5C)),
       if (_paymentsController.errorMessage != null)
-        _BannerMessage(_paymentsController.errorMessage!, const Color(0xFFB3261E)),
+        _BannerMessage(
+            _paymentsController.errorMessage!, const Color(0xFFB3261E)),
       if (_paymentsController.successMessage != null)
-        _BannerMessage(_paymentsController.successMessage!, const Color(0xFF0E6B5C)),
+        _BannerMessage(
+            _paymentsController.successMessage!, const Color(0xFF0E6B5C)),
       if (_vendorsController.errorMessage != null)
-        _BannerMessage(_vendorsController.errorMessage!, const Color(0xFFB3261E)),
+        _BannerMessage(
+            _vendorsController.errorMessage!, const Color(0xFFB3261E)),
       if (_vendorsController.successMessage != null)
-        _BannerMessage(_vendorsController.successMessage!, const Color(0xFF0E6B5C)),
+        _BannerMessage(
+            _vendorsController.successMessage!, const Color(0xFF0E6B5C)),
       if (_sponsorsController.errorMessage != null)
-        _BannerMessage(_sponsorsController.errorMessage!, const Color(0xFFB3261E)),
+        _BannerMessage(
+            _sponsorsController.errorMessage!, const Color(0xFFB3261E)),
       if (_sponsorsController.successMessage != null)
-        _BannerMessage(_sponsorsController.successMessage!, const Color(0xFF0E6B5C)),
+        _BannerMessage(
+            _sponsorsController.successMessage!, const Color(0xFF0E6B5C)),
     ];
 
     return banners
@@ -1044,38 +1070,38 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
     switch (role) {
       case UserRole.attendee:
         return const _RolePalette(
-          canvasTop: Color(0xFFF9F1E6),
-          canvasBottom: Color(0xFFF0E4D2),
-          accent: Color(0xFFBA7B2F),
-          support: Color(0xFF145B52),
+          canvasTop: Color(0xFFF4F7FB),
+          canvasBottom: Color(0xFFE3EBF4),
+          accent: Color(0xFF1B6E99),
+          support: Color(0xFFE67E4B),
         );
       case UserRole.organizer:
         return const _RolePalette(
-          canvasTop: Color(0xFFF2F5F1),
-          canvasBottom: Color(0xFFE3ECE7),
-          accent: Color(0xFF145B52),
-          support: Color(0xFFBA7B2F),
+          canvasTop: Color(0xFFF0F6F3),
+          canvasBottom: Color(0xFFDDECE4),
+          accent: Color(0xFF0D6B57),
+          support: Color(0xFFE17D37),
         );
       case UserRole.vendor:
         return const _RolePalette(
-          canvasTop: Color(0xFFF4EFF7),
-          canvasBottom: Color(0xFFE8DDF0),
-          accent: Color(0xFF6B5078),
-          support: Color(0xFF145B52),
+          canvasTop: Color(0xFFF7F4EE),
+          canvasBottom: Color(0xFFEEE4D4),
+          accent: Color(0xFF8A5C1C),
+          support: Color(0xFF135D77),
         );
       case UserRole.sponsor:
         return const _RolePalette(
-          canvasTop: Color(0xFFFAF1E8),
-          canvasBottom: Color(0xFFF2E2D1),
-          accent: Color(0xFF8B5526),
-          support: Color(0xFF145B52),
+          canvasTop: Color(0xFFF2F6FA),
+          canvasBottom: Color(0xFFE1EAF3),
+          accent: Color(0xFF305D8E),
+          support: Color(0xFFD67243),
         );
       case UserRole.admin:
         return const _RolePalette(
-          canvasTop: Color(0xFFF0F3F3),
-          canvasBottom: Color(0xFFE1E8E7),
-          accent: Color(0xFF1F3E3B),
-          support: Color(0xFFBA7B2F),
+          canvasTop: Color(0xFFF0F4F9),
+          canvasBottom: Color(0xFFDDE7F1),
+          accent: Color(0xFF173B63),
+          support: Color(0xFF0D6B57),
         );
     }
   }
@@ -1120,9 +1146,10 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
                     selected: _selectedCategorySlug == category.slug,
                     onSelected: (_) {
                       setState(() {
-                        _selectedCategorySlug = _selectedCategorySlug == category.slug
-                            ? null
-                            : category.slug;
+                        _selectedCategorySlug =
+                            _selectedCategorySlug == category.slug
+                                ? null
+                                : category.slug;
                       });
                     },
                   ),
@@ -1207,7 +1234,9 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
         label: 'Public',
         value: _eventsController.publicEvents.length.toString(),
         note: 'Live event supply',
-        icon: role == UserRole.admin ? Icons.public_rounded : Icons.stream_rounded,
+        icon: role == UserRole.admin
+            ? Icons.public_rounded
+            : Icons.stream_rounded,
         color: const Color(0xFF145B52),
       ),
       _LeadSignal(
@@ -1232,7 +1261,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
       _LeadSignal(
         label: 'Events',
         value: _eventsController.myEvents.length.toString(),
-        note: role == UserRole.admin ? 'Admin-reviewed set' : 'Studio inventory',
+        note:
+            role == UserRole.admin ? 'Admin-reviewed set' : 'Studio inventory',
         icon: Icons.theater_comedy_rounded,
         color: const Color(0xFF145B52),
       ),
@@ -1283,14 +1313,16 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
     return [
       _LeadSignal(
         label: 'Services',
-        value: (_vendorsController.myVendorProfile?.services.length ?? 0).toString(),
+        value: (_vendorsController.myVendorProfile?.services.length ?? 0)
+            .toString(),
         note: 'Catalog depth',
         icon: Icons.design_services_rounded,
         color: const Color(0xFF6B5078),
       ),
       _LeadSignal(
         label: 'Packages',
-        value: (_vendorsController.myVendorProfile?.packages.length ?? 0).toString(),
+        value: (_vendorsController.myVendorProfile?.packages.length ?? 0)
+            .toString(),
         note: 'Bundled offers',
         icon: Icons.inventory_2_rounded,
         color: const Color(0xFFBA7B2F),
@@ -1298,7 +1330,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
       _LeadSignal(
         label: 'Accepted',
         value: _vendorsController.myVendorRequests
-            .where((item) => item.status == 'accepted' || item.status == 'booked')
+            .where(
+                (item) => item.status == 'accepted' || item.status == 'booked')
             .length
             .toString(),
         note: 'Active deals',
@@ -1326,7 +1359,9 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
       ),
       _LeadSignal(
         label: 'Verified',
-        value: _sponsorsController.mySponsorProfile?.verified == true ? 'Yes' : 'No',
+        value: _sponsorsController.mySponsorProfile?.verified == true
+            ? 'Yes'
+            : 'No',
         note: 'Brand readiness',
         icon: Icons.verified_rounded,
         color: const Color(0xFF145B52),
@@ -1493,7 +1528,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
                           vendor: vendor,
                           actionLabel: 'Start chat',
                           secondaryActionLabel:
-                              vendor.bookingPreference?.allowDirectBooking == true
+                              vendor.bookingPreference?.allowDirectBooking ==
+                                      true
                                   ? 'Book / request'
                                   : 'Send request',
                           onAction: () => _openDirectConversation(
@@ -1527,12 +1563,15 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
                         child: _SponsorshipOpportunityCard(
                           opportunity: opportunity,
                           accent: const Color(0xFFCC7A00),
-                          actionLabel:
-                              user.role == UserRole.admin ? 'Express interest' : null,
-                          secondaryActionLabel:
-                              user.role == UserRole.admin ? 'Chat organizer' : null,
+                          actionLabel: user.role == UserRole.admin
+                              ? 'Express interest'
+                              : null,
+                          secondaryActionLabel: user.role == UserRole.admin
+                              ? 'Chat organizer'
+                              : null,
                           onAction: user.role == UserRole.admin
-                              ? () => _openExpressInterestSheet(session, opportunity)
+                              ? () => _openExpressInterestSheet(
+                                  session, opportunity)
                               : null,
                           onSecondaryAction: user.role == UserRole.admin
                               ? () => _openDirectConversation(
@@ -1607,7 +1646,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
           ],
           const SizedBox(height: 16),
           _SectionCard(
-            title: publicEvents.isEmpty ? 'No event demand yet' : 'Demand radar',
+            title:
+                publicEvents.isEmpty ? 'No event demand yet' : 'Demand radar',
             accent: const Color(0xFF5C4267),
             icon: Icons.radar_rounded,
             child: publicEvents.isEmpty
@@ -1737,7 +1777,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
                         .map(
                           (registration) => Padding(
                             padding: const EdgeInsets.only(bottom: 12),
-                            child: _RegistrationCard(registration: registration),
+                            child:
+                                _RegistrationCard(registration: registration),
                           ),
                         )
                         .toList(growable: false),
@@ -1849,7 +1890,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
                     style: TextStyle(color: Color(0xFF5F645F), height: 1.5),
                   )
                 else
-                  _PlanningBriefCard(planningBrief: _aiController.planningBrief!),
+                  _PlanningBriefCard(
+                      planningBrief: _aiController.planningBrief!),
               ],
             ),
           ),
@@ -1870,17 +1912,16 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
                             padding: const EdgeInsets.only(bottom: 12),
                             child: _VendorRequestCard(
                               vendorRequest: vendorRequest,
-                              actionLabel:
-                                  vendorRequest.status == 'accepted'
-                                      ? 'Mark booked'
-                                      : null,
-                              onAction:
-                                  vendorRequest.status == 'accepted'
-                                      ? () => _vendorsController.markVendorRequestBooked(
-                                            session,
-                                            requestId: vendorRequest.id,
-                                          )
-                                      : null,
+                              actionLabel: vendorRequest.status == 'accepted'
+                                  ? 'Mark booked'
+                                  : null,
+                              onAction: vendorRequest.status == 'accepted'
+                                  ? () => _vendorsController
+                                          .markVendorRequestBooked(
+                                        session,
+                                        requestId: vendorRequest.id,
+                                      )
+                                  : null,
                             ),
                           ),
                         )
@@ -1972,26 +2013,30 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
                             padding: const EdgeInsets.only(bottom: 12),
                             child: _VendorRequestCard(
                               vendorRequest: vendorRequest,
-                              actionLabel:
-                                  vendorRequest.status == 'pending' ? 'Accept' : null,
+                              actionLabel: vendorRequest.status == 'pending'
+                                  ? 'Accept'
+                                  : null,
                               secondaryActionLabel:
-                                  vendorRequest.status == 'pending' ? 'Decline' : null,
-                              onAction:
                                   vendorRequest.status == 'pending'
-                                      ? () => _vendorsController.respondToVendorRequest(
-                                            session,
-                                            requestId: vendorRequest.id,
-                                            status: 'accepted',
-                                          )
+                                      ? 'Decline'
                                       : null,
-                              onSecondaryAction:
-                                  vendorRequest.status == 'pending'
-                                      ? () => _vendorsController.respondToVendorRequest(
-                                            session,
-                                            requestId: vendorRequest.id,
-                                            status: 'declined',
-                                          )
-                                      : null,
+                              onAction: vendorRequest.status == 'pending'
+                                  ? () =>
+                                      _vendorsController.respondToVendorRequest(
+                                        session,
+                                        requestId: vendorRequest.id,
+                                        status: 'accepted',
+                                      )
+                                  : null,
+                              onSecondaryAction: vendorRequest.status ==
+                                      'pending'
+                                  ? () =>
+                                      _vendorsController.respondToVendorRequest(
+                                        session,
+                                        requestId: vendorRequest.id,
+                                        status: 'declined',
+                                      )
+                                  : null,
                             ),
                           ),
                         )
@@ -2106,7 +2151,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
                       child: FilledButton.tonal(
                         onPressed: _notificationsController.isSubmitting
                             ? null
-                            : () => _notificationsController.markAllRead(session),
+                            : () =>
+                                _notificationsController.markAllRead(session),
                         child: Text(
                           _notificationsController.isSubmitting
                               ? 'Updating...'
@@ -2115,19 +2161,19 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
                       ),
                     ),
                   ..._notificationsController.notifications.take(8).map(
-                    (notification) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _NotificationCard(
-                        notification: notification,
-                        onTap: notification.unread
-                            ? () => _notificationsController.markRead(
-                                  session,
-                                  notification.id,
-                                )
-                            : null,
+                        (notification) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _NotificationCard(
+                            notification: notification,
+                            onTap: notification.unread
+                                ? () => _notificationsController.markRead(
+                                      session,
+                                      notification.id,
+                                    )
+                                : null,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
                 ],
               ),
       ),
@@ -2149,7 +2195,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
                         child: _ConversationCard(
                           conversation: conversation,
                           currentUserId: user.id,
-                          onTap: () => _openConversationSheet(session, conversation),
+                          onTap: () =>
+                              _openConversationSheet(session, conversation),
                         ),
                       ),
                     )
@@ -2226,7 +2273,9 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
             ),
             _PreferenceRow(
               label: 'AI assist',
-              value: user.settings?.aiAssistEnabled == true ? 'Enabled' : 'Disabled',
+              value: user.settings?.aiAssistEnabled == true
+                  ? 'Enabled'
+                  : 'Disabled',
             ),
             _PreferenceRow(
               label: 'Privacy',
@@ -2332,21 +2381,24 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
           _NavDestinationData(
             label: 'Explore',
             headline: 'Explore',
-            description: 'Search, filter, and discover live events worth saving or booking.',
+            description:
+                'Search, filter, and discover live events worth saving or booking.',
             icon: Icons.explore_outlined,
             selectedIcon: Icons.explore_rounded,
           ),
           _NavDestinationData(
             label: 'Plans',
             headline: 'Plans',
-            description: 'Your registrations, shortlist, and payment history in one place.',
+            description:
+                'Your registrations, shortlist, and payment history in one place.',
             icon: Icons.confirmation_number_outlined,
             selectedIcon: Icons.confirmation_number_rounded,
           ),
           _NavDestinationData(
             label: 'Inbox',
             headline: 'Inbox',
-            description: 'Notifications, conversations, and support updates stay together.',
+            description:
+                'Notifications, conversations, and support updates stay together.',
             icon: Icons.forum_outlined,
             selectedIcon: Icons.forum_rounded,
           ),
@@ -2363,14 +2415,16 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
           _NavDestinationData(
             label: 'Overview',
             headline: 'Overview',
-            description: 'Monitor discovery, vendor supply, and sponsor demand from one surface.',
+            description:
+                'Monitor discovery, vendor supply, and sponsor demand from one surface.',
             icon: Icons.dashboard_outlined,
             selectedIcon: Icons.dashboard_rounded,
           ),
           _NavDestinationData(
             label: 'Studio',
             headline: 'Studio',
-            description: 'Run event creation, planning, and marketplace workflows.',
+            description:
+                'Run event creation, planning, and marketplace workflows.',
             icon: Icons.event_note_outlined,
             selectedIcon: Icons.event_note_rounded,
           ),
@@ -2384,7 +2438,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
           _NavDestinationData(
             label: 'Profile',
             headline: 'Profile',
-            description: 'Your account state, settings, and recent platform activity.',
+            description:
+                'Your account state, settings, and recent platform activity.',
             icon: Icons.person_outline_rounded,
             selectedIcon: Icons.person_rounded,
           ),
@@ -2394,7 +2449,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
           _NavDestinationData(
             label: 'Market',
             headline: 'Market',
-            description: 'Watch demand signals, event inventory, and open opportunities.',
+            description:
+                'Watch demand signals, event inventory, and open opportunities.',
             icon: Icons.storefront_outlined,
             selectedIcon: Icons.storefront_rounded,
           ),
@@ -2408,14 +2464,16 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
           _NavDestinationData(
             label: 'Inbox',
             headline: 'Inbox',
-            description: 'Stay on top of messages, support, and booking alerts.',
+            description:
+                'Stay on top of messages, support, and booking alerts.',
             icon: Icons.forum_outlined,
             selectedIcon: Icons.forum_rounded,
           ),
           _NavDestinationData(
             label: 'Profile',
             headline: 'Profile',
-            description: 'Account identity, settings, and recently viewed items.',
+            description:
+                'Account identity, settings, and recently viewed items.',
             icon: Icons.person_outline_rounded,
             selectedIcon: Icons.person_rounded,
           ),
@@ -2425,14 +2483,16 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
           _NavDestinationData(
             label: 'Explore',
             headline: 'Explore',
-            description: 'Scan open opportunities, event momentum, and fit signals.',
+            description:
+                'Scan open opportunities, event momentum, and fit signals.',
             icon: Icons.travel_explore_outlined,
             selectedIcon: Icons.travel_explore_rounded,
           ),
           _NavDestinationData(
             label: 'Deals',
             headline: 'Deals',
-            description: 'Manage brand profile, interests, and AI-ranked matches.',
+            description:
+                'Manage brand profile, interests, and AI-ranked matches.',
             icon: Icons.handshake_outlined,
             selectedIcon: Icons.handshake_rounded,
           ),
@@ -2456,14 +2516,16 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
           _NavDestinationData(
             label: 'Pulse',
             headline: 'Pulse',
-            description: 'Monitor event supply, marketplace health, and public activity.',
+            description:
+                'Monitor event supply, marketplace health, and public activity.',
             icon: Icons.monitor_heart_outlined,
             selectedIcon: Icons.monitor_heart_rounded,
           ),
           _NavDestinationData(
             label: 'Review',
             headline: 'Review',
-            description: 'Operate events, planning, vendor flow, and sponsor queues.',
+            description:
+                'Operate events, planning, vendor flow, and sponsor queues.',
             icon: Icons.fact_check_outlined,
             selectedIcon: Icons.fact_check_rounded,
           ),
@@ -2597,30 +2659,45 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
   String _headlineForRole(UserRole role) {
     switch (role) {
       case UserRole.attendee:
-        return 'Build your next live-event shortlist';
+        return 'Meloo attendee';
       case UserRole.organizer:
-        return 'Run the full event operation from one workspace';
+        return 'Meloo organizer';
       case UserRole.vendor:
-        return 'Turn event demand into booked work';
+        return 'Meloo vendor';
       case UserRole.sponsor:
-        return 'Track sponsor-fit openings and conversations';
+        return 'Meloo sponsor';
       case UserRole.admin:
-        return 'Monitor trust, support, and marketplace flow';
+        return 'Meloo platforms';
     }
   }
 
   String _bodyForRole(UserRole role) {
     switch (role) {
       case UserRole.attendee:
-        return 'Discovery, saved events, booking history, notifications, and paid checkout are live on the real backend.';
+        return 'Explore, save, and book.';
       case UserRole.organizer:
-        return 'Create events, shape ticketing, brief the planner, source vendors, and manage sponsor interest without leaving mobile.';
+        return 'Events, vendors, and sponsors.';
       case UserRole.vendor:
-        return 'Your profile, service catalog, request inbox, and direct organizer messaging are all connected to live product data.';
+        return 'Services, packages, and nearby demand.';
       case UserRole.sponsor:
-        return 'Evaluate live opportunities, express interest, manage brand positioning, and move sponsor conversations forward.';
+        return 'Matches, interest, and deals.';
       case UserRole.admin:
-        return 'The mobile console mirrors the live platform so moderation, discovery, support context, and payment history stay visible on the move.';
+        return 'Internal operations only.';
+    }
+  }
+
+  String _workspaceLabelForRole(UserRole role) {
+    switch (role) {
+      case UserRole.admin:
+        return 'Meloo platforms';
+      case UserRole.attendee:
+        return 'Attendee desk';
+      case UserRole.organizer:
+        return 'Organizer desk';
+      case UserRole.vendor:
+        return 'Vendor desk';
+      case UserRole.sponsor:
+        return 'Sponsor desk';
     }
   }
 
@@ -2628,7 +2705,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
     switch (role) {
       case UserRole.attendee:
         return [
-          _HeroMetric('Saved', _eventsController.favoriteEvents.length.toString()),
+          _HeroMetric(
+              'Saved', _eventsController.favoriteEvents.length.toString()),
           _HeroMetric(
             'Booked',
             _eventsController.myRegistrations.length.toString(),
@@ -2663,11 +2741,13 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
           ),
           _HeroMetric(
             'Services',
-            (_vendorsController.myVendorProfile?.services.length ?? 0).toString(),
+            (_vendorsController.myVendorProfile?.services.length ?? 0)
+                .toString(),
           ),
           _HeroMetric(
             'Packages',
-            (_vendorsController.myVendorProfile?.packages.length ?? 0).toString(),
+            (_vendorsController.myVendorProfile?.packages.length ?? 0)
+                .toString(),
           ),
           _HeroMetric('Chats', _chatController.conversations.length.toString()),
         ];
@@ -2689,7 +2769,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
         ];
       case UserRole.admin:
         return [
-          _HeroMetric('Events', _eventsController.publicEvents.length.toString()),
+          _HeroMetric(
+              'Events', _eventsController.publicEvents.length.toString()),
           _HeroMetric('Tickets', _supportController.tickets.length.toString()),
           _HeroMetric(
             'Alerts',
@@ -2720,9 +2801,7 @@ class _NotificationCard extends StatelessWidget {
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          color: notification.unread
-              ? const Color(0xFFFFFCF7)
-              : Colors.white,
+          color: notification.unread ? const Color(0xFFFFFCF7) : Colors.white,
           border: Border.all(
             color: notification.unread
                 ? const Color(0xFFCC7A00)
@@ -2870,20 +2949,41 @@ class _HeroCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-            decoration: BoxDecoration(
-              color: const Color(0x1FFFFFFF),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              '${roleLabel.toUpperCase()} WORKSPACE',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.8,
+          Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0x14FFFFFF),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Image.asset(
+                  'assets/branding/meloo-mark-v1.png',
+                  fit: BoxFit.contain,
+                ),
               ),
-            ),
+              const SizedBox(width: 12),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(
+                  color: const Color(0x1FFFFFFF),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  roleLabel == 'admin'
+                      ? 'MELOO PLATFORMS'
+                      : '${roleLabel.toUpperCase()} DESK',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 18),
           Text(
@@ -2898,9 +2998,12 @@ class _HeroCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             supporting,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Color(0xFFE8F0EE),
-              height: 1.5,
+              height: 1.45,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 18),
@@ -3030,14 +3133,12 @@ class _QuickActionData {
 class _RoleLeadPanel extends StatelessWidget {
   const _RoleLeadPanel({
     required this.title,
-    required this.description,
     required this.actions,
     required this.signals,
     required this.palette,
   });
 
   final String title;
-  final String description;
   final List<_QuickActionData> actions;
   final List<_LeadSignal> signals;
   final _RolePalette palette;
@@ -3082,14 +3183,6 @@ class _RoleLeadPanel extends StatelessWidget {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      description,
-                      style: const TextStyle(
-                        color: Color(0xFF5F645F),
-                        height: 1.55,
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -3100,7 +3193,8 @@ class _RoleLeadPanel extends StatelessWidget {
                   color: palette.accent.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(Icons.dashboard_customize_rounded, color: palette.accent),
+                child: Icon(Icons.dashboard_customize_rounded,
+                    color: palette.accent),
               ),
             ],
           ),
@@ -3130,7 +3224,8 @@ class _QuickActionStrip extends StatelessWidget {
               onTap: action.onTap,
               borderRadius: BorderRadius.circular(18),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(18),
                   color: Colors.white,
@@ -3179,7 +3274,8 @@ class _SignalStrip extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(compact ? 20 : 24),
                     color: Colors.white,
-                    border: Border.all(color: signal.color.withValues(alpha: 0.18)),
+                    border:
+                        Border.all(color: signal.color.withValues(alpha: 0.18)),
                     boxShadow: const [
                       BoxShadow(
                         color: Color(0x0D1A130C),
@@ -3217,14 +3313,16 @@ class _SignalStrip extends StatelessWidget {
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        signal.note,
-                        style: const TextStyle(
-                          color: Color(0xFF5F645F),
-                          height: 1.45,
+                      if (!compact) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          signal.note,
+                          style: const TextStyle(
+                            color: Color(0xFF5F645F),
+                            height: 1.45,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -3475,7 +3573,11 @@ class _ProfileSummaryCard extends StatelessWidget {
             ),
             alignment: Alignment.center,
             child: Text(
-              (profile?.fullName ?? user.email).trim().characters.first.toUpperCase(),
+              (profile?.fullName ?? user.email)
+                  .trim()
+                  .characters
+                  .first
+                  .toUpperCase(),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 24,
@@ -3490,7 +3592,8 @@ class _ProfileSummaryCard extends StatelessWidget {
               children: [
                 Text(
                   profile?.fullName ?? 'Account profile',
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                      fontSize: 22, fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -3501,7 +3604,8 @@ class _ProfileSummaryCard extends StatelessWidget {
                   const SizedBox(height: 10),
                   Text(
                     profile.bio!,
-                    style: const TextStyle(color: Color(0xFF5F645F), height: 1.45),
+                    style:
+                        const TextStyle(color: Color(0xFF5F645F), height: 1.45),
                   ),
                 ],
                 const SizedBox(height: 12),
@@ -3578,7 +3682,9 @@ class _BannerCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            isPositive ? Icons.check_circle_outline_rounded : Icons.info_outline_rounded,
+            isPositive
+                ? Icons.check_circle_outline_rounded
+                : Icons.info_outline_rounded,
             color: color,
           ),
           const SizedBox(width: 12),
@@ -3850,6 +3956,14 @@ class _SponsorProfileCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (profile.logoUrl != null && profile.logoUrl!.isNotEmpty) ...[
+            _NetworkShowcase(
+              imageUrl: profile.logoUrl!,
+              semanticsLabel: profile.companyName,
+              height: 152,
+            ),
+            const SizedBox(height: 14),
+          ],
           Row(
             children: [
               Expanded(
@@ -3881,12 +3995,28 @@ class _SponsorProfileCard extends StatelessWidget {
             runSpacing: 8,
             children: [
               _MetaLabel(label: profile.industries),
+              if (profile.websiteUrl != null && profile.websiteUrl!.isNotEmpty)
+                _MetaLabel(label: profile.websiteUrl!),
             ],
           ),
           const SizedBox(height: 14),
-          OutlinedButton(
-            onPressed: onEditProfile,
-            child: const Text('Edit profile'),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              OutlinedButton(
+                onPressed: onEditProfile,
+                child: const Text('Edit profile'),
+              ),
+              if (profile.websiteUrl != null && profile.websiteUrl!.isNotEmpty)
+                OutlinedButton(
+                  onPressed: () => launchUrlString(
+                    profile.websiteUrl!,
+                    mode: LaunchMode.platformDefault,
+                  ),
+                  child: const Text('Open website'),
+                ),
+            ],
           ),
         ],
       ),
@@ -3958,8 +4088,7 @@ class _SponsorshipOpportunityCard extends StatelessWidget {
               _MetaLabel(label: 'Target ${opportunity.requiredAmount}'),
               _MetaLabel(label: opportunity.targetAudience),
               _MetaLabel(
-                label:
-                    '${opportunity.event.venue}, ${opportunity.event.city}',
+                label: '${opportunity.event.venue}, ${opportunity.event.city}',
               ),
               _MetaLabel(label: _formatOpportunityWindow(opportunity)),
             ],
@@ -4049,7 +4178,8 @@ class _SponsorshipInterestCard extends StatelessWidget {
             spacing: 10,
             runSpacing: 8,
             children: [
-              _MetaLabel(label: 'Target ${interest.opportunity.requiredAmount}'),
+              _MetaLabel(
+                  label: 'Target ${interest.opportunity.requiredAmount}'),
               _MetaLabel(
                 label:
                     '${interest.opportunity.event.venue}, ${interest.opportunity.event.city}',
@@ -4183,6 +4313,16 @@ class _VendorDiscoveryCard extends StatelessWidget {
             runSpacing: 8,
             children: [
               _MetaLabel(label: vendor.serviceArea),
+              if (vendor.distanceKm != null)
+                _MetaLabel(label: '${vendor.distanceKm!.toStringAsFixed(1)} km away'),
+              if (vendor.travelRadiusKm != null)
+                _MetaLabel(
+                  label: 'travels ${vendor.travelRadiusKm!.toStringAsFixed(0)} km',
+                ),
+              if (vendor.withinTravelRadius != null)
+                _MetaLabel(
+                  label: vendor.withinTravelRadius! ? 'within travel radius' : 'outside travel radius',
+                ),
               _MetaLabel(
                 label: vendor.bookingPreference?.allowDirectBooking == true
                     ? 'direct booking'
@@ -4213,6 +4353,57 @@ class _VendorDiscoveryCard extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _NetworkShowcase extends StatelessWidget {
+  const _NetworkShowcase({
+    required this.imageUrl,
+    required this.semanticsLabel,
+    required this.height,
+  });
+
+  final String imageUrl;
+  final String semanticsLabel;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Image.network(
+        imageUrl,
+        height: height,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        semanticLabel: semanticsLabel,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            height: height,
+            width: double.infinity,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFFF4ECE0),
+                  Color(0xFFE8DDCD),
+                ],
+              ),
+            ),
+            child: const Text(
+              'Preview unavailable',
+              style: TextStyle(
+                color: Color(0xFF6A655D),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -4532,8 +4723,7 @@ class _PaymentCard extends StatelessWidget {
             runSpacing: 8,
             children: [
               _MetaLabel(
-                label:
-                    '${payment.payment.currency} ${payment.payment.amount}',
+                label: '${payment.payment.currency} ${payment.payment.amount}',
               ),
               _MetaLabel(label: payment.registration.ticketType.name),
               _MetaLabel(label: payment.booking.status),
@@ -4685,7 +4875,8 @@ class _ChatConversationSheetState extends State<_ChatConversationSheet> {
                         )
                       : ListView.separated(
                           itemCount: widget.messages.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             final message = widget.messages[index];
                             final isMine =
@@ -4800,6 +4991,15 @@ class _VendorProfileCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (profile.portfolioImageUrl != null &&
+                  profile.portfolioImageUrl!.isNotEmpty) ...[
+                _NetworkShowcase(
+                  imageUrl: profile.portfolioImageUrl!,
+                  semanticsLabel: profile.businessName,
+                  height: 168,
+                ),
+                const SizedBox(height: 14),
+              ],
               Row(
                 children: [
                   Expanded(
@@ -4831,15 +5031,21 @@ class _VendorProfileCard extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   _MetaLabel(label: profile.serviceArea),
+                  if (profile.travelRadiusKm != null)
+                    _MetaLabel(
+                      label:
+                          'travels ${profile.travelRadiusKm!.toStringAsFixed(0)} km',
+                    ),
                   _MetaLabel(
                     label: profile.bookingPreference?.allowDirectBooking == true
                         ? 'direct enabled'
                         : 'direct disabled',
                   ),
                   _MetaLabel(
-                    label: profile.bookingPreference?.allowRequestBooking == false
-                        ? 'requests off'
-                        : 'requests on',
+                    label:
+                        profile.bookingPreference?.allowRequestBooking == false
+                            ? 'requests off'
+                            : 'requests on',
                   ),
                 ],
               ),
@@ -4860,6 +5066,15 @@ class _VendorProfileCard extends StatelessWidget {
                     onPressed: onAddPackage,
                     child: const Text('Add package'),
                   ),
+                  if (profile.verificationDocumentUrl != null &&
+                      profile.verificationDocumentUrl!.isNotEmpty)
+                    OutlinedButton(
+                      onPressed: () => launchUrlString(
+                        profile.verificationDocumentUrl!,
+                        mode: LaunchMode.platformDefault,
+                      ),
+                      child: const Text('View verification'),
+                    ),
                 ],
               ),
             ],
@@ -4895,7 +5110,8 @@ class _VendorProfileCard extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 10),
               child: _VendorMiniCard(
                 title: vendorPackage.name,
-                subtitle: '${vendorPackage.price}\n${vendorPackage.description}',
+                subtitle:
+                    '${vendorPackage.price}\n${vendorPackage.description}',
               ),
             ),
           ),

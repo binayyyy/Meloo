@@ -7,6 +7,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Role } from '../common/enums/role.enum';
+import {
+  hasCoordinates,
+  haversineDistanceKm,
+  toNullableNumber,
+} from '../common/utils/distance.util';
 import { Event } from '../events/entities';
 import { NotificationType } from '../notifications/entities';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -81,7 +86,49 @@ export class VendorsService {
     }
 
     const vendors = await queryBuilder.getMany();
-    return vendors.map((vendor) => this.toVendorProfileResponse(vendor));
+    const origin =
+      query.latitude != null && query.longitude != null
+        ? {
+            latitude: query.latitude,
+            longitude: query.longitude,
+          }
+        : null;
+
+    return vendors
+      .map((vendor) => {
+        const distanceKm =
+          origin != null && hasCoordinates(vendor)
+            ? haversineDistanceKm(origin, vendor)
+            : null;
+        const travelRadiusKm = toNullableNumber(vendor.travelRadiusKm);
+        const withinTravelRadius =
+          distanceKm == null || travelRadiusKm == null
+            ? null
+            : distanceKm <= travelRadiusKm;
+
+        return this.toVendorProfileResponse(vendor, {
+          distanceKm,
+          withinTravelRadius,
+        });
+      })
+      .filter(
+        (vendor) => query.radiusKm == null || vendor.distanceKm == null || vendor.distanceKm <= query.radiusKm,
+      )
+      .sort((left, right) => {
+        if (left.verified !== right.verified) {
+          return left.verified ? -1 : 1;
+        }
+        if (left.distanceKm != null && right.distanceKm != null) {
+          return left.distanceKm - right.distanceKm;
+        }
+        if (left.distanceKm != null) {
+          return -1;
+        }
+        if (right.distanceKm != null) {
+          return 1;
+        }
+        return left.businessName.localeCompare(right.businessName);
+      });
   }
 
   async getPublicVendorProfile(vendorId: string): Promise<VendorProfileResponseDto> {
@@ -137,6 +184,15 @@ export class VendorsService {
         description: dto.description.trim(),
         category: dto.category.trim(),
         serviceArea: dto.serviceArea.trim(),
+        latitude: this.formatOptionalCoordinate(dto.latitude),
+        longitude: this.formatOptionalCoordinate(dto.longitude),
+        travelRadiusKm: this.formatOptionalRadius(
+          dto.travelRadiusKm,
+          dto.latitude,
+          dto.longitude,
+        ),
+        portfolioImageUrl: dto.portfolioImageUrl?.trim() || null,
+        verificationDocumentUrl: dto.verificationDocumentUrl?.trim() || null,
         verified: existingProfile?.verified ?? false,
         ratingAverage: existingProfile?.ratingAverage ?? '0.00',
       }),
@@ -523,7 +579,13 @@ export class VendorsService {
     return parsed.toFixed(2);
   }
 
-  toVendorProfileResponse(vendor: VendorProfile): VendorProfileResponseDto {
+  toVendorProfileResponse(
+    vendor: VendorProfile,
+    options?: {
+      distanceKm?: number | null;
+      withinTravelRadius?: boolean | null;
+    },
+  ): VendorProfileResponseDto {
     return {
       id: vendor.id,
       userId: vendor.userId,
@@ -531,6 +593,13 @@ export class VendorsService {
       description: vendor.description,
       category: vendor.category,
       serviceArea: vendor.serviceArea,
+      latitude: toNullableNumber(vendor.latitude),
+      longitude: toNullableNumber(vendor.longitude),
+      travelRadiusKm: toNullableNumber(vendor.travelRadiusKm),
+      distanceKm: options?.distanceKm ?? null,
+      withinTravelRadius: options?.withinTravelRadius ?? null,
+      portfolioImageUrl: vendor.portfolioImageUrl,
+      verificationDocumentUrl: vendor.verificationDocumentUrl,
       verified: vendor.verified,
       ratingAverage: vendor.ratingAverage,
       services: (vendor.services ?? []).map((service) => ({
@@ -581,5 +650,39 @@ export class VendorsService {
       createdAt: vendorRequest.createdAt,
       updatedAt: vendorRequest.updatedAt,
     };
+  }
+
+  private formatOptionalCoordinate(value: number | null | undefined): string | null {
+    if (value == null) {
+      return null;
+    }
+
+    return value.toFixed(6);
+  }
+
+  private formatOptionalRadius(
+    radiusKm: number | null | undefined,
+    latitude: number | null | undefined,
+    longitude: number | null | undefined,
+  ): string | null {
+    const hasLatitude = latitude != null;
+    const hasLongitude = longitude != null;
+
+    if (hasLatitude !== hasLongitude) {
+      throw new BadRequestException(
+        'Vendor base location requires both latitude and longitude',
+      );
+    }
+
+    if (!hasLatitude) {
+      if (radiusKm != null) {
+        throw new BadRequestException(
+          'Travel radius requires a vendor base location',
+        );
+      }
+      return null;
+    }
+
+    return (radiusKm ?? 80).toFixed(2);
   }
 }

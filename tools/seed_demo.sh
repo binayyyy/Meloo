@@ -2,8 +2,10 @@
 set -euo pipefail
 
 API_BASE_URL="${1:-http://127.0.0.1:3000/api}"
-DEMO_DIR="/home/dav/smart-event/.tooling/demo"
+ROOT_DIR="$(pwd)"
+DEMO_DIR="$ROOT_DIR/.tooling/demo"
 TOKENS_FILE="$DEMO_DIR/demo_tokens.json"
+LOCAL_SETUP_KEY="${LOCAL_SETUP_KEY:-change-this-local-setup-key}"
 
 mkdir -p "$DEMO_DIR"
 
@@ -48,17 +50,17 @@ login_user() {
 
 PASSWORD="Passw0rd!23"
 
-signup_user "admin@smartevent.local" "$PASSWORD" "admin"
-signup_user "organizer@smartevent.local" "$PASSWORD" "organizer"
-signup_user "vendor@smartevent.local" "$PASSWORD" "vendor"
-signup_user "sponsor@smartevent.local" "$PASSWORD" "sponsor"
-signup_user "attendee@smartevent.local" "$PASSWORD" "attendee"
+request_json POST "$API_BASE_URL/auth/bootstrap-local-admin" "{\"email\":\"admin@meloo.local\",\"password\":\"$PASSWORD\",\"fullName\":\"Amina Admin\"}" "x-setup-key: $LOCAL_SETUP_KEY" >/dev/null
+signup_user "organizer@meloo.local" "$PASSWORD" "organizer"
+signup_user "vendor@meloo.local" "$PASSWORD" "vendor"
+signup_user "sponsor@meloo.local" "$PASSWORD" "sponsor"
+signup_user "attendee@meloo.local" "$PASSWORD" "attendee"
 
-admin_login=$(login_user "admin@smartevent.local" "$PASSWORD")
-organizer_login=$(login_user "organizer@smartevent.local" "$PASSWORD")
-vendor_login=$(login_user "vendor@smartevent.local" "$PASSWORD")
-sponsor_login=$(login_user "sponsor@smartevent.local" "$PASSWORD")
-attendee_login=$(login_user "attendee@smartevent.local" "$PASSWORD")
+admin_login=$(login_user "admin@meloo.local" "$PASSWORD")
+organizer_login=$(login_user "organizer@meloo.local" "$PASSWORD")
+vendor_login=$(login_user "vendor@meloo.local" "$PASSWORD")
+sponsor_login=$(login_user "sponsor@meloo.local" "$PASSWORD")
+attendee_login=$(login_user "attendee@meloo.local" "$PASSWORD")
 
 ADMIN_TOKEN=$(printf '%s' "$admin_login" | extract_json "o.tokens.accessToken")
 ORGANIZER_TOKEN=$(printf '%s' "$organizer_login" | extract_json "o.tokens.accessToken")
@@ -70,7 +72,7 @@ categories_json=$(request_json GET "$API_BASE_URL/event-categories")
 CATEGORY_ID=$(printf '%s' "$categories_json" | extract_json "o[0].id")
 
 event_payload=$(cat <<JSON
-{"title":"Smart Event Showcase","description":"A live demo event for the platform covering tickets, sponsors, vendors, and support workflows.","categoryId":"$CATEGORY_ID","venue":"Civic Center","city":"Kathmandu","startAt":"2026-05-01T10:00:00.000Z","endAt":"2026-05-01T16:00:00.000Z","status":"published","visibility":"public"}
+{"title":"Smart Event Showcase","description":"A live demo event for the platform covering tickets, sponsors, vendors, and support workflows.","categoryId":"$CATEGORY_ID","venue":"Civic Center","city":"Kathmandu","latitude":27.7172,"longitude":85.3240,"vendorMatchRadiusKm":60,"startAt":"2026-05-01T10:00:00.000Z","endAt":"2026-05-01T16:00:00.000Z","status":"published","visibility":"public"}
 JSON
 )
 event_json=$(request_json POST "$API_BASE_URL/events" "$event_payload" "Authorization: Bearer $ORGANIZER_TOKEN")
@@ -83,7 +85,7 @@ paid_ticket_json=$(request_json POST "$API_BASE_URL/events/$EVENT_ID/ticket-type
 FREE_TICKET_ID=$(printf '%s' "$free_ticket_json" | extract_json "o.id")
 PAID_TICKET_ID=$(printf '%s' "$paid_ticket_json" | extract_json "o.id")
 
-request_json PATCH "$API_BASE_URL/vendors/me/profile" '{"businessName":"Northwind Events","description":"Full-service event production vendor covering staging, logistics, and on-site operations.","category":"Event Production","serviceArea":"Kathmandu Valley","verified":false}' "Authorization: Bearer $VENDOR_TOKEN" >/dev/null
+request_json PATCH "$API_BASE_URL/vendors/me/profile" '{"businessName":"Northwind Events","description":"Full-service event production vendor covering staging, logistics, and on-site operations.","category":"Event Production","serviceArea":"Kathmandu Valley","latitude":27.7103,"longitude":85.3206,"travelRadiusKm":80}' "Authorization: Bearer $VENDOR_TOKEN" >/dev/null
 request_json PATCH "$API_BASE_URL/vendors/me/booking-preference" '{"allowDirectBooking":true,"allowRequestBooking":true}' "Authorization: Bearer $VENDOR_TOKEN" >/dev/null
 request_json POST "$API_BASE_URL/vendors/me/services" '{"name":"Stage setup","description":"Stage design, install, and breakdown for conferences and showcases.","basePrice":"1200.00","pricingModel":"fixed"}' "Authorization: Bearer $VENDOR_TOKEN" >/dev/null
 request_json POST "$API_BASE_URL/vendors/me/packages" '{"name":"Launch package","description":"Production support, staffing, and day-of coordination.","price":"2500.00"}' "Authorization: Bearer $VENDOR_TOKEN" >/dev/null
@@ -114,11 +116,11 @@ cat >"$TOKENS_FILE" <<JSON
 {
   "apiBaseUrl": "$API_BASE_URL",
   "password": "$PASSWORD",
-  "adminEmail": "admin@smartevent.local",
-  "organizerEmail": "organizer@smartevent.local",
-  "vendorEmail": "vendor@smartevent.local",
-  "sponsorEmail": "sponsor@smartevent.local",
-  "attendeeEmail": "attendee@smartevent.local",
+  "adminEmail": "admin@meloo.local",
+  "organizerEmail": "organizer@meloo.local",
+  "vendorEmail": "vendor@meloo.local",
+  "sponsorEmail": "sponsor@meloo.local",
+  "attendeeEmail": "attendee@meloo.local",
   "adminToken": "$ADMIN_TOKEN",
   "organizerToken": "$ORGANIZER_TOKEN",
   "vendorToken": "$VENDOR_TOKEN",

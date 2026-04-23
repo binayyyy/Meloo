@@ -26,6 +26,7 @@ coverage/
 
 # Next.js (admin)
 apps/admin/.next/
+apps/admin/.next-dev/
 
 # Flutter - Ignore heavy build caches and generated platform stuff we don't need to track
 apps/mobile/android/.gradle/

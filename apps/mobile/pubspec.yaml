@@ -1,5 +1,5 @@
 name: smart_event_mobile
-description: Smart Event Hub mobile application scaffold.
+description: Meloo mobile application.
 publish_to: "none"
 version: 0.1.0+1
 
@@ -11,7 +11,10 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
+  file_picker: ^8.1.2
+  flutter_map: ^7.0.2
   http: ^1.4.0
+  latlong2: ^0.9.1
   shared_preferences: ^2.5.3
   url_launcher: ^6.3.1
   web_socket_channel: ^3.0.3
@@ -23,3 +26,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/branding/

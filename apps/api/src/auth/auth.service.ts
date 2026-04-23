@@ -1,6 +1,8 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -19,6 +21,7 @@ import {
 } from '../users/entities';
 import {
   AuthResponseDto,
+  BootstrapLocalAdminDto,
   ForgotPasswordDto,
   ForgotPasswordResponseDto,
   LoginDto,
@@ -47,9 +50,67 @@ export class AuthService {
     private readonly passwordResetTokensRepository: Repository<PasswordResetToken>,
     @InjectRepository(EmailVerificationToken)
     private readonly emailVerificationTokensRepository: Repository<EmailVerificationToken>,
+    @InjectRepository(User)
+    private readonly usersRepository: Repository<User>,
   ) {}
 
+  async bootstrapLocalAdmin(
+    dto: BootstrapLocalAdminDto,
+    setupKey?: string,
+    deviceInfo?: string,
+  ): Promise<AuthResponseDto> {
+    const nodeEnv = this.configService.get<string>('app.nodeEnv', 'development');
+    if (nodeEnv === 'production') {
+      throw new NotFoundException();
+    }
+
+    const expectedSetupKey = this.configService.get<string>('app.localSetupKey', '');
+    if (!expectedSetupKey || setupKey !== expectedSetupKey) {
+      throw new UnauthorizedException('Invalid local setup key');
+    }
+
+    const existingUser = await this.usersService.findByEmail(dto.email);
+    let userId: string;
+
+    if (existingUser) {
+      if (existingUser.role !== Role.ADMIN) {
+        throw new ConflictException('This email already belongs to a non-admin account');
+      }
+
+      await this.usersService.updatePassword(
+        existingUser.id,
+        await hashPassword(dto.password),
+      );
+      await this.usersRepository.update(existingUser.id, {
+        status: UserStatus.ACTIVE,
+      });
+      userId = existingUser.id;
+    } else {
+      const user = await this.usersService.createUser({
+        email: dto.email,
+        passwordHash: await hashPassword(dto.password),
+        role: Role.ADMIN,
+        status: UserStatus.ACTIVE,
+      });
+      userId = user.id;
+    }
+
+    await this.usersService.updateMe(userId, {
+      profile: {
+        fullName: dto.fullName?.trim() || 'Local Admin',
+      },
+    });
+
+    return this.createAuthResponse(userId, deviceInfo);
+  }
+
   async signUp(dto: SignUpDto, deviceInfo?: string): Promise<AuthResponseDto> {
+    if (dto.role === Role.ADMIN) {
+      throw new BadRequestException(
+        'Admin accounts cannot be created through public sign up',
+      );
+    }
+
     const existingUser = await this.usersService.findByEmail(dto.email);
     if (existingUser) {
       throw new ConflictException('An account with this email already exists');
@@ -280,4 +341,3 @@ export class AuthService {
     return new Date(Date.now() + offsetSeconds * 1000);
   }
 }
-

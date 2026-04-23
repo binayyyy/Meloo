@@ -1,9 +1,10 @@
-import 'package:flutter/foundation.dart';
+import '../core/safe_change_notifier.dart';
+import '../events/event_models.dart';
 import '../session/auth_models.dart';
 import 'vendor_models.dart';
 import 'vendors_api_client.dart';
 
-class VendorsController extends ChangeNotifier {
+class VendorsController extends SafeChangeNotifier {
   VendorsController({VendorsApiClient? apiClient})
       : _apiClient = apiClient ?? VendorsApiClient();
 
@@ -27,13 +28,20 @@ class VendorsController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   String? get successMessage => _successMessage;
 
-  Future<void> load(AuthSession session) async {
+  Future<void> load(
+    AuthSession session, {
+    EventModel? focusEvent,
+  }) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final publicVendors = await _apiClient.fetchPublicVendors();
+      final publicVendors = await _apiClient.fetchPublicVendors(
+        latitude: focusEvent?.latitude,
+        longitude: focusEvent?.longitude,
+        radiusKm: focusEvent?.vendorMatchRadiusKm,
+      );
       _publicVendors = publicVendors;
       if (session.user.role == UserRole.organizer ||
           session.user.role == UserRole.admin) {

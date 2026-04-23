@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart';
+import '../core/safe_change_notifier.dart';
 import '../session/auth_models.dart';
 import 'sponsor_models.dart';
 import 'sponsors_api_client.dart';
 
-class SponsorsController extends ChangeNotifier {
+class SponsorsController extends SafeChangeNotifier {
   SponsorsController({SponsorsApiClient? apiClient})
       : _apiClient = apiClient ?? SponsorsApiClient();
 

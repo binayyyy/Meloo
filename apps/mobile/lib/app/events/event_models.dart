@@ -29,6 +29,9 @@ class EventModel {
     required this.category,
     required this.venue,
     required this.city,
+    required this.latitude,
+    required this.longitude,
+    required this.vendorMatchRadiusKm,
     required this.startAt,
     required this.endAt,
     required this.status,
@@ -43,6 +46,9 @@ class EventModel {
   final EventCategoryModel category;
   final String venue;
   final String city;
+  final double? latitude;
+  final double? longitude;
+  final double? vendorMatchRadiusKm;
   final DateTime startAt;
   final DateTime endAt;
   final String status;
@@ -62,6 +68,9 @@ class EventModel {
       ),
       venue: stringValue(json['venue']),
       city: stringValue(json['city']),
+      latitude: nullableDoubleValue(json['latitude']),
+      longitude: nullableDoubleValue(json['longitude']),
+      vendorMatchRadiusKm: nullableDoubleValue(json['vendorMatchRadiusKm']),
       startAt: DateTime.parse(stringValue(json['startAt'])).toLocal(),
       endAt: DateTime.parse(stringValue(json['endAt'])).toLocal(),
       status: stringValue(json['status']),
@@ -177,9 +186,13 @@ class EventCreateRequest {
     required this.categoryId,
     required this.venue,
     required this.city,
+    required this.latitude,
+    required this.longitude,
+    required this.vendorMatchRadiusKm,
     required this.startAt,
     required this.endAt,
     required this.publishImmediately,
+    this.coverImageUrl,
   });
 
   final String title;
@@ -187,9 +200,13 @@ class EventCreateRequest {
   final String categoryId;
   final String venue;
   final String city;
+  final double? latitude;
+  final double? longitude;
+  final double? vendorMatchRadiusKm;
   final DateTime startAt;
   final DateTime endAt;
   final bool publishImmediately;
+  final String? coverImageUrl;
 
   Map<String, dynamic> toJson() {
     return {
@@ -198,10 +215,15 @@ class EventCreateRequest {
       'categoryId': categoryId,
       'venue': venue,
       'city': city,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+      if (vendorMatchRadiusKm != null) 'vendorMatchRadiusKm': vendorMatchRadiusKm,
       'startAt': startAt.toUtc().toIso8601String(),
       'endAt': endAt.toUtc().toIso8601String(),
       'status': publishImmediately ? 'published' : 'draft',
       'visibility': 'public',
+      if (coverImageUrl != null && coverImageUrl!.isNotEmpty)
+        'coverImageUrl': coverImageUrl,
     };
   }
 }

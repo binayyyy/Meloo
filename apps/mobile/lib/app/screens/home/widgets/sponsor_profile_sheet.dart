@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import '../../../sponsors/sponsor_models.dart';
+import '../../../uploads/upload_models.dart';
+import '../../../widgets/upload_field_card.dart';
 
 class SponsorProfileSheet extends StatefulWidget {
   const SponsorProfileSheet({
+    required this.accessToken,
     required this.initialProfile,
     required this.onSubmit,
     required this.isSubmitting,
     super.key,
   });
 
+  final String accessToken;
   final SponsorProfileModel? initialProfile;
   final Future<void> Function(SponsorProfileUpsertRequest request) onSubmit;
   final bool isSubmitting;
@@ -21,6 +25,9 @@ class _SponsorProfileSheetState extends State<SponsorProfileSheet> {
   late final TextEditingController _companyNameController;
   late final TextEditingController _descriptionController;
   late final TextEditingController _industriesController;
+  late final TextEditingController _logoUrlController;
+  late final TextEditingController _websiteUrlController;
+  late final TextEditingController _verificationDocumentUrlController;
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -33,6 +40,12 @@ class _SponsorProfileSheetState extends State<SponsorProfileSheet> {
         TextEditingController(text: profile?.description ?? '');
     _industriesController =
         TextEditingController(text: profile?.industries ?? '');
+    _logoUrlController = TextEditingController(text: profile?.logoUrl ?? '');
+    _websiteUrlController =
+        TextEditingController(text: profile?.websiteUrl ?? '');
+    _verificationDocumentUrlController = TextEditingController(
+      text: profile?.verificationDocumentUrl ?? '',
+    );
   }
 
   @override
@@ -40,6 +53,9 @@ class _SponsorProfileSheetState extends State<SponsorProfileSheet> {
     _companyNameController.dispose();
     _descriptionController.dispose();
     _industriesController.dispose();
+    _logoUrlController.dispose();
+    _websiteUrlController.dispose();
+    _verificationDocumentUrlController.dispose();
     super.dispose();
   }
 
@@ -53,6 +69,16 @@ class _SponsorProfileSheetState extends State<SponsorProfileSheet> {
         companyName: _companyNameController.text.trim(),
         description: _descriptionController.text.trim(),
         industries: _industriesController.text.trim(),
+        logoUrl: _logoUrlController.text.trim().isEmpty
+            ? null
+            : _logoUrlController.text.trim(),
+        websiteUrl: _websiteUrlController.text.trim().isEmpty
+            ? null
+            : _websiteUrlController.text.trim(),
+        verificationDocumentUrl:
+            _verificationDocumentUrlController.text.trim().isEmpty
+                ? null
+                : _verificationDocumentUrlController.text.trim(),
       ),
     );
 
@@ -94,6 +120,31 @@ class _SponsorProfileSheetState extends State<SponsorProfileSheet> {
               const SizedBox(height: 16),
               _field(_industriesController, 'Industries'),
               const SizedBox(height: 16),
+              _field(
+                _websiteUrlController,
+                'Website',
+                keyboardType: TextInputType.url,
+                required: false,
+              ),
+              const SizedBox(height: 16),
+              UploadFieldCard(
+                label: 'Logo',
+                accessToken: widget.accessToken,
+                controller: _logoUrlController,
+                kind: UploadAssetKind.image,
+                helper:
+                    'Upload the sponsor logo used in opportunity review and profile display.',
+              ),
+              const SizedBox(height: 16),
+              UploadFieldCard(
+                label: 'Verification document',
+                accessToken: widget.accessToken,
+                controller: _verificationDocumentUrlController,
+                kind: UploadAssetKind.document,
+                helper:
+                    'Attach a company profile, capabilities deck, or registration document.',
+              ),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _descriptionController,
                 maxLines: 4,
@@ -125,15 +176,27 @@ class _SponsorProfileSheetState extends State<SponsorProfileSheet> {
     );
   }
 
-  Widget _field(TextEditingController controller, String label) {
+  Widget _field(
+    TextEditingController controller,
+    String label, {
+    TextInputType? keyboardType,
+    bool required = true,
+  }) {
     return TextFormField(
       controller: controller,
+      keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
         border: const OutlineInputBorder(),
       ),
-      validator: (value) =>
-          value == null || value.trim().isEmpty ? '$label is required' : null,
+      validator: (value) {
+        if (!required) {
+          return null;
+        }
+        return value == null || value.trim().isEmpty
+            ? '$label is required'
+            : null;
+      },
     );
   }
 }

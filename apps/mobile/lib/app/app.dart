@@ -25,7 +25,8 @@ class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
     super.initState();
     _router = AppRouter(widget.authController);
     widget.authController.addListener(_handleAuthStateChange);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _handleAuthStateChange());
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _handleAuthStateChange());
   }
 
   @override
@@ -65,7 +66,8 @@ class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
     final manageMode = queryParameters['manageMode'] == 'true';
     final paymentResult = queryParameters['payment'];
     final paymentSessionId = queryParameters['session_id'];
-    final paymentSignature = 'payment:$paymentResult:$paymentSessionId:$eventId';
+    final paymentSignature =
+        'payment:$paymentResult:$paymentSessionId:$eventId';
     if ((paymentResult == 'success' || paymentResult == 'cancel') &&
         paymentSessionId != null &&
         _lastDemoNavigationSignature != paymentSignature) {
@@ -113,89 +115,100 @@ class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
 
   @override
   Widget build(BuildContext context) {
-    const brand = Color(0xFF145B52);
-    const accent = Color(0xFFBA7B2F);
-    const surface = Color(0xFFFFFCF7);
-    const ink = Color(0xFF1F1B17);
+    const primary = Color(0xFF132A4A);
+    const secondary = Color(0xFF1AB2C4);
+    const tertiary = Color(0xFFD8A548);
+    const surface = Color(0xFFFFFBF5);
+    const ink = Color(0xFF17263D);
+    const canvas = Color(0xFFF3EBDD);
+    const outline = Color(0xFFDDD0BF);
+    const muted = Color(0xFF686B72);
 
     return MaterialApp(
-      title: 'Smart Event Hub',
+      title: 'Meloo',
       debugShowCheckedModeBanner: false,
       navigatorKey: _router.navigatorKey,
       theme: ThemeData(
         colorScheme: const ColorScheme.light(
-          primary: brand,
-          secondary: accent,
+          primary: primary,
+          secondary: secondary,
+          tertiary: tertiary,
           surface: surface,
-          error: Color(0xFFAF3D31),
+          error: Color(0xFFA44336),
         ),
-        scaffoldBackgroundColor: const Color(0xFFF4EFE6),
+        scaffoldBackgroundColor: canvas,
         textTheme: ThemeData.light().textTheme.apply(
               bodyColor: ink,
               displayColor: ink,
             ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFFF8F2E8),
+          backgroundColor: Color(0xFFFFF9F1),
           foregroundColor: ink,
           elevation: 0,
           scrolledUnderElevation: 0,
           centerTitle: false,
+          surfaceTintColor: Colors.transparent,
           titleTextStyle: TextStyle(
             color: ink,
-            fontSize: 19,
+            fontSize: 20,
             fontWeight: FontWeight.w800,
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: Colors.white,
+          fillColor: Colors.white.withValues(alpha: 0.84),
           labelStyle: const TextStyle(
-            color: Color(0xFF60584D),
+            color: muted,
             fontWeight: FontWeight.w600,
           ),
-          hintStyle: const TextStyle(color: Color(0xFF958B7E)),
-          helperStyle: const TextStyle(color: Color(0xFF6D665A)),
+          hintStyle: const TextStyle(color: Color(0xFF8A8386)),
+          helperStyle: const TextStyle(color: muted),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 16,
           ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
-            borderSide: const BorderSide(color: Color(0xFFD7CCBC)),
+            borderSide: const BorderSide(color: outline),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
-            borderSide: const BorderSide(color: Color(0xFFD7CCBC)),
+            borderSide: const BorderSide(color: outline),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
-            borderSide: const BorderSide(color: brand, width: 1.4),
+            borderSide: const BorderSide(color: secondary, width: 1.4),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
-            borderSide: const BorderSide(color: Color(0xFFAF3D31)),
+            borderSide: const BorderSide(color: Color(0xFFA44336)),
           ),
           focusedErrorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
-            borderSide: const BorderSide(color: Color(0xFFAF3D31), width: 1.4),
+            borderSide: const BorderSide(color: Color(0xFFA44336), width: 1.4),
           ),
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
-            backgroundColor: brand,
+            backgroundColor: primary,
             foregroundColor: Colors.white,
-            disabledBackgroundColor: const Color(0xFFB5C8C1),
-            textStyle: const TextStyle(fontWeight: FontWeight.w800),
+            disabledBackgroundColor: const Color(0xFFB7C7D8),
+            textStyle: const TextStyle(
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.1,
+            ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(18),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            elevation: 0,
           ),
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             foregroundColor: ink,
-            side: const BorderSide(color: Color(0xFFD7CCBC)),
+            side: const BorderSide(color: outline),
+            backgroundColor: Colors.white.withValues(alpha: 0.52),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -204,11 +217,11 @@ class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
           ),
         ),
         chipTheme: ChipThemeData(
-          backgroundColor: const Color(0xFFF2ECE1),
-          selectedColor: const Color(0xFFE3F0EC),
-          disabledColor: const Color(0xFFE7E1D8),
+          backgroundColor: const Color(0xFFF5ECDE),
+          selectedColor: const Color(0xFFDFF5F4),
+          disabledColor: const Color(0xFFE7DDCF),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          side: const BorderSide(color: Color(0xFFE2D6C6)),
+          side: const BorderSide(color: outline),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(999),
           ),
@@ -230,9 +243,32 @@ class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
-            side: const BorderSide(color: Color(0xFFE2D7C9)),
+            side: BorderSide(color: outline),
           ),
         ),
+        navigationBarTheme: const NavigationBarThemeData(
+          backgroundColor: Color(0xFFF9F2E9),
+          indicatorColor: Color(0x1F2B9A84),
+          surfaceTintColor: Colors.transparent,
+          labelTextStyle: WidgetStatePropertyAll(
+            TextStyle(
+              color: ink,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        snackBarTheme: SnackBarThemeData(
+          backgroundColor: primary,
+          contentTextStyle: ThemeData.light().textTheme.bodyMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
+        dividerColor: outline,
         useMaterial3: true,
       ),
       onGenerateRoute: _router.onGenerateRoute,

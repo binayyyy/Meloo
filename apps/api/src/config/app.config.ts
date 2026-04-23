@@ -5,4 +5,5 @@ export default registerAs('app', () => ({
   port: Number.parseInt(process.env.PORT ?? '3000', 10),
   apiPrefix: process.env.API_PREFIX ?? 'api',
   corsOrigin: process.env.CORS_ORIGIN ?? '*',
+  localSetupKey: process.env.LOCAL_SETUP_KEY ?? '',
 }));

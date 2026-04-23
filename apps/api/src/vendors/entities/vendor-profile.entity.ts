@@ -31,6 +31,27 @@ export class VendorProfile {
   @Column({ type: 'varchar', name: 'service_area' })
   serviceArea!: string;
 
+  @Column({ type: 'numeric', precision: 9, scale: 6, nullable: true })
+  latitude!: string | null;
+
+  @Column({ type: 'numeric', precision: 9, scale: 6, nullable: true })
+  longitude!: string | null;
+
+  @Column({
+    type: 'numeric',
+    precision: 6,
+    scale: 2,
+    name: 'travel_radius_km',
+    nullable: true,
+  })
+  travelRadiusKm!: string | null;
+
+  @Column({ type: 'varchar', name: 'portfolio_image_url', nullable: true })
+  portfolioImageUrl!: string | null;
+
+  @Column({ type: 'varchar', name: 'verification_document_url', nullable: true })
+  verificationDocumentUrl!: string | null;
+
   @Column({ type: 'boolean', default: false })
   verified!: boolean;
 
@@ -59,4 +80,3 @@ export class VendorProfile {
   )
   bookingPreference!: VendorBookingPreference | null;
 }
-

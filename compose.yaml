@@ -1,0 +1,100 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: meloo
+      POSTGRES_USER: meloo
+      POSTGRES_PASSWORD: meloo
+    ports:
+      - "5432:5432"
+    volumes:
+      - meloo_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meloo -d meloo"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      API_PREFIX: api
+      CORS_ORIGIN: http://localhost:3001
+      PUBLIC_API_BASE_URL: http://localhost:3000
+      LOCAL_SETUP_KEY: change-this-local-setup-key
+      DB_TYPE: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: meloo
+      DB_USERNAME: meloo
+      DB_PASSWORD: meloo
+      DB_SYNCHRONIZE: "true"
+      JWT_SECRET: replace-this-with-a-long-local-secret
+      ACCESS_TOKEN_TTL_SECONDS: 900
+      REFRESH_TOKEN_TTL_SECONDS: 2592000
+      STRIPE_SECRET_KEY: ""
+      STRIPE_WEBHOOK_SECRET: ""
+      STRIPE_CURRENCY: usd
+      PAYMENT_RETURN_URL: http://localhost:3001
+      AI_ENABLED: "false"
+      UPLOADS_DIR: /app/.tooling/uploads
+      UPLOAD_IMAGE_MAX_BYTES: 6291456
+      UPLOAD_DOCUMENT_MAX_BYTES: 12582912
+    ports:
+      - "3000:3000"
+    volumes:
+      - smart_event_demo:/app/.tooling/demo
+      - smart_event_uploads:/app/.tooling/uploads
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/event-categories').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  seed:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      API_BASE_URL: http://api:3000/api
+      LOCAL_SETUP_KEY: change-this-local-setup-key
+      PAYMENT_RETURN_URL: http://localhost:3001
+      STRIPE_SECRET_KEY: ""
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - smart_event_demo:/app/.tooling/demo
+      - smart_event_uploads:/app/.tooling/uploads
+    command: ["node", "tools/seed_demo.mjs"]
+    restart: "no"
+
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile.admin
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:3000/api
+      PORT: 3001
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "3001:3001"
+
+volumes:
+  meloo_postgres:
+  smart_event_uploads:

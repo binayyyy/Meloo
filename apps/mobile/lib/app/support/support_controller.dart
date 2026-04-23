@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart';
+import '../core/safe_change_notifier.dart';
 import '../session/auth_models.dart';
 import 'support_api_client.dart';
 import 'support_models.dart';
 
-class SupportController extends ChangeNotifier {
+class SupportController extends SafeChangeNotifier {
   SupportController({SupportApiClient? apiClient})
       : _apiClient = apiClient ?? SupportApiClient();
 

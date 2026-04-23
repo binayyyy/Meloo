@@ -42,7 +42,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(authController.errorMessage ?? 'Sign up failed')),
+        SnackBar(
+            content: Text(authController.errorMessage ?? 'Sign up failed')),
       );
     }
   }
@@ -52,16 +53,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final authController = AuthScope.of(context);
 
     return AuthScaffold(
-      eyebrow: 'Create your workspace',
+      eyebrow: 'Create Meloo account',
       title: 'Create account',
-      subtitle:
-          'Start with the role that matches your first workflow. The platform will shape the dashboard around that role.',
+      subtitle: 'Choose your role and continue.',
       highlights: const [
         'Attendee',
         'Organizer',
         'Vendor',
         'Sponsor',
-        'Admin',
       ],
       footer: Wrap(
         spacing: 8,
@@ -110,8 +109,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   child: Text(
                     'Starting role',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                          fontWeight: FontWeight.w800,
+                        ),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -123,7 +122,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ('organizer', 'Organizer'),
                     ('vendor', 'Vendor'),
                     ('sponsor', 'Sponsor'),
-                    ('admin', 'Admin'),
                   ].map((entry) {
                     final selected = _role == entry.$1;
                     return ChoiceChip(
@@ -162,7 +160,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       child: Text(
                         authController.isLoading
                             ? 'Creating account...'
-                            : 'Create account',
+                            : 'Create Meloo account',
                       ),
                     ),
                   ),

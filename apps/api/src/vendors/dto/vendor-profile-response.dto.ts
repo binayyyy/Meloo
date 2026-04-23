@@ -9,10 +9,16 @@ export class VendorProfileResponseDto {
   description!: string;
   category!: string;
   serviceArea!: string;
+  latitude!: number | null;
+  longitude!: number | null;
+  travelRadiusKm!: number | null;
+  distanceKm!: number | null;
+  withinTravelRadius!: boolean | null;
+  portfolioImageUrl!: string | null;
+  verificationDocumentUrl!: string | null;
   verified!: boolean;
   ratingAverage!: string;
   services!: VendorServiceResponseDto[];
   packages!: VendorPackageResponseDto[];
   bookingPreference!: VendorBookingPreferenceResponseDto | null;
 }
-

@@ -41,6 +41,19 @@ double doubleValue(dynamic value, {double fallback = 0}) {
   return double.tryParse(value.toString()) ?? fallback;
 }
 
+double? nullableDoubleValue(dynamic value) {
+  if (value == null) {
+    return null;
+  }
+  if (value is double) {
+    return value;
+  }
+  if (value is num) {
+    return value.toDouble();
+  }
+  return double.tryParse(value.toString());
+}
+
 bool boolValue(dynamic value, {bool fallback = false}) {
   if (value == null) {
     return fallback;

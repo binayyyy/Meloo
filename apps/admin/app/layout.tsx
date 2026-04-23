@@ -2,8 +2,13 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Smart Event Hub Admin',
-  description: 'Admin panel foundation for Smart Event Hub.',
+  title: 'Meloo platforms',
+  description: 'Internal operations console for the Meloo event network.',
+  icons: {
+    icon: '/branding/meloo-mark-v1.png',
+    shortcut: '/branding/meloo-mark-v1.png',
+    apple: '/branding/meloo-mark-v1.png',
+  },
 };
 
 export default function RootLayout({
@@ -17,4 +22,3 @@ export default function RootLayout({
     </html>
   );
 }
-

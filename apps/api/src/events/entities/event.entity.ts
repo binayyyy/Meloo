@@ -49,6 +49,21 @@ export class Event {
   @Column({ type: 'varchar' })
   city!: string;
 
+  @Column({ type: 'numeric', precision: 9, scale: 6, nullable: true })
+  latitude!: string | null;
+
+  @Column({ type: 'numeric', precision: 9, scale: 6, nullable: true })
+  longitude!: string | null;
+
+  @Column({
+    type: 'numeric',
+    precision: 6,
+    scale: 2,
+    name: 'vendor_match_radius_km',
+    nullable: true,
+  })
+  vendorMatchRadiusKm!: string | null;
+
   @Column({ type: DATE_COLUMN_TYPE, name: 'start_at' })
   startAt!: Date;
 

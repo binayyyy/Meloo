@@ -1,7 +1,7 @@
 import { mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 
-const root = '/home/dav/smart-event';
+const root = process.cwd();
 const demoDir = path.join(root, '.tooling/demo');
 const files = [
   'smart-event-local.sqlite',

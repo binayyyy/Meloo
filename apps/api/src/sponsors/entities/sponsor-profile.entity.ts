@@ -19,6 +19,15 @@ export class SponsorProfile {
   @Column({ type: 'varchar' })
   industries!: string;
 
+  @Column({ type: 'varchar', name: 'logo_url', nullable: true })
+  logoUrl!: string | null;
+
+  @Column({ type: 'varchar', name: 'website_url', nullable: true })
+  websiteUrl!: string | null;
+
+  @Column({ type: 'varchar', name: 'verification_document_url', nullable: true })
+  verificationDocumentUrl!: string | null;
+
   @Column({ type: 'boolean', default: false })
   verified!: boolean;
 
@@ -29,4 +38,3 @@ export class SponsorProfile {
   @OneToMany(() => SponsorshipInterest, (interest) => interest.sponsorProfile)
   interests!: SponsorshipInterest[];
 }
-

@@ -1,11 +1,11 @@
-import 'package:flutter/foundation.dart';
+import '../core/safe_change_notifier.dart';
 import '../payments/payment_models.dart';
 import '../payments/payments_api_client.dart';
 import '../session/auth_models.dart';
 import 'event_models.dart';
 import 'events_api_client.dart';
 
-class EventDetailController extends ChangeNotifier {
+class EventDetailController extends SafeChangeNotifier {
   EventDetailController({
     EventsApiClient? apiClient,
     PaymentsApiClient? paymentsApiClient,

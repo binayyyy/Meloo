@@ -77,6 +77,13 @@ class VendorProfileModel {
     required this.description,
     required this.category,
     required this.serviceArea,
+    required this.latitude,
+    required this.longitude,
+    required this.travelRadiusKm,
+    required this.distanceKm,
+    required this.withinTravelRadius,
+    required this.portfolioImageUrl,
+    required this.verificationDocumentUrl,
     required this.verified,
     required this.ratingAverage,
     required this.services,
@@ -90,6 +97,13 @@ class VendorProfileModel {
   final String description;
   final String category;
   final String serviceArea;
+  final double? latitude;
+  final double? longitude;
+  final double? travelRadiusKm;
+  final double? distanceKm;
+  final bool? withinTravelRadius;
+  final String? portfolioImageUrl;
+  final String? verificationDocumentUrl;
   final bool verified;
   final String ratingAverage;
   final List<VendorServiceModel> services;
@@ -104,6 +118,16 @@ class VendorProfileModel {
       description: stringValue(json['description']),
       category: stringValue(json['category']),
       serviceArea: stringValue(json['serviceArea']),
+      latitude: nullableDoubleValue(json['latitude']),
+      longitude: nullableDoubleValue(json['longitude']),
+      travelRadiusKm: nullableDoubleValue(json['travelRadiusKm']),
+      distanceKm: nullableDoubleValue(json['distanceKm']),
+      withinTravelRadius: json['withinTravelRadius'] == null
+          ? null
+          : boolValue(json['withinTravelRadius']),
+      portfolioImageUrl: nullableStringValue(json['portfolioImageUrl']),
+      verificationDocumentUrl:
+          nullableStringValue(json['verificationDocumentUrl']),
       verified: boolValue(json['verified']),
       ratingAverage: stringValue(json['ratingAverage'], fallback: '0.00'),
       services: (json['services'] as List? ?? const [])
@@ -229,6 +253,11 @@ class VendorProfileUpsertRequest {
     required this.description,
     required this.category,
     required this.serviceArea,
+    required this.latitude,
+    required this.longitude,
+    required this.travelRadiusKm,
+    required this.portfolioImageUrl,
+    required this.verificationDocumentUrl,
     required this.allowDirectBooking,
     required this.allowRequestBooking,
   });
@@ -237,6 +266,11 @@ class VendorProfileUpsertRequest {
   final String description;
   final String category;
   final String serviceArea;
+  final double? latitude;
+  final double? longitude;
+  final double? travelRadiusKm;
+  final String? portfolioImageUrl;
+  final String? verificationDocumentUrl;
   final bool allowDirectBooking;
   final bool allowRequestBooking;
 
@@ -245,6 +279,11 @@ class VendorProfileUpsertRequest {
         'description': description,
         'category': category,
         'serviceArea': serviceArea,
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
+        if (travelRadiusKm != null) 'travelRadiusKm': travelRadiusKm,
+        'portfolioImageUrl': portfolioImageUrl,
+        'verificationDocumentUrl': verificationDocumentUrl,
       };
 
   Map<String, dynamic> get bookingPreferenceJson => {

@@ -18,6 +18,11 @@ import { UserProfile } from '../users/entities';
 import { VendorProfile } from '../vendors/entities';
 import { VendorsService } from '../vendors/vendors.service';
 import { AiGatewayService } from './ai-gateway.service';
+import {
+  hasCoordinates,
+  haversineDistanceKm,
+  toNullableNumber,
+} from '../common/utils/distance.util';
 
 @Injectable()
 export class AiService {
@@ -219,7 +224,7 @@ export class AiService {
     });
 
     return vendors
-      .map((vendor) => this.toVendorRecommendation(vendor, event.city))
+      .map((vendor) => this.toVendorRecommendation(vendor, event))
       .sort((left, right) => right.score - left.score)
       .slice(0, 6);
   }
@@ -412,16 +417,40 @@ export class AiService {
 
   private toVendorRecommendation(
     vendor: VendorProfile,
-    eventCity: string,
+    event: Event,
   ): VendorRecommendationResponseDto {
     let score = vendor.verified ? 0.7 : 0.48;
     let reasonSummary = vendor.verified
       ? 'Verified vendor ranked above unverified profiles.'
       : 'Unverified vendor included because profile coverage is relevant.';
 
-    if (vendor.serviceArea.toLowerCase().includes(eventCity.toLowerCase())) {
+    const distanceKm =
+      hasCoordinates(event) && hasCoordinates(vendor)
+        ? haversineDistanceKm(event, vendor)
+        : null;
+    const vendorTravelRadiusKm = toNullableNumber(vendor.travelRadiusKm);
+    const eventMatchRadiusKm = toNullableNumber(event.vendorMatchRadiusKm);
+
+    if (
+      distanceKm != null &&
+      vendorTravelRadiusKm != null &&
+      eventMatchRadiusKm != null
+    ) {
+      const withinVendorRadius = distanceKm <= vendorTravelRadiusKm;
+      const withinEventRadius = distanceKm <= eventMatchRadiusKm;
+      if (withinVendorRadius && withinEventRadius) {
+        score += 0.24;
+        reasonSummary = `${distanceKm.toFixed(1)} km away and inside both the vendor travel radius and event match radius.`;
+      } else if (withinVendorRadius || withinEventRadius) {
+        score += 0.1;
+        reasonSummary = `${distanceKm.toFixed(1)} km away with partial radius overlap for this event.`;
+      } else {
+        score -= 0.1;
+        reasonSummary = `${distanceKm.toFixed(1)} km away, which sits outside the preferred travel radius for this match.`;
+      }
+    } else if (vendor.serviceArea.toLowerCase().includes(event.city.toLowerCase())) {
       score += 0.18;
-      reasonSummary = `Service area includes ${eventCity}, which aligns with the event location.`;
+      reasonSummary = `Service area includes ${event.city}, which aligns with the event location.`;
     }
 
     if (vendor.bookingPreference?.allowDirectBooking === true) {
@@ -431,7 +460,13 @@ export class AiService {
     return {
       score: Number(score.toFixed(2)),
       reasonSummary,
-      vendor: this.vendorsService.toVendorProfileResponse(vendor),
+      vendor: this.vendorsService.toVendorProfileResponse(vendor, {
+        distanceKm,
+        withinTravelRadius:
+          distanceKm == null || vendorTravelRadiusKm == null
+            ? null
+            : distanceKm <= vendorTravelRadiusKm,
+      }),
     };
   }
 

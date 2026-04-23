@@ -64,6 +64,9 @@ export class SponsorsService {
         companyName: dto.companyName.trim(),
         description: dto.description.trim(),
         industries: dto.industries.trim(),
+        logoUrl: dto.logoUrl?.trim() || null,
+        websiteUrl: dto.websiteUrl?.trim() || null,
+        verificationDocumentUrl: dto.verificationDocumentUrl?.trim() || null,
         verified: existing?.verified ?? false,
       }),
     );
@@ -296,6 +299,9 @@ export class SponsorsService {
       companyName: profile.companyName,
       description: profile.description,
       industries: profile.industries,
+      logoUrl: profile.logoUrl,
+      websiteUrl: profile.websiteUrl,
+      verificationDocumentUrl: profile.verificationDocumentUrl,
       verified: profile.verified,
     };
   }

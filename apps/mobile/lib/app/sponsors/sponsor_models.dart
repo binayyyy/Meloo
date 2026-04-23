@@ -7,6 +7,9 @@ class SponsorProfileModel {
     required this.companyName,
     required this.description,
     required this.industries,
+    required this.logoUrl,
+    required this.websiteUrl,
+    required this.verificationDocumentUrl,
     required this.verified,
   });
 
@@ -15,6 +18,9 @@ class SponsorProfileModel {
   final String companyName;
   final String description;
   final String industries;
+  final String? logoUrl;
+  final String? websiteUrl;
+  final String? verificationDocumentUrl;
   final bool verified;
 
   factory SponsorProfileModel.fromJson(Map<String, dynamic> json) {
@@ -24,6 +30,10 @@ class SponsorProfileModel {
       companyName: stringValue(json['companyName']),
       description: stringValue(json['description']),
       industries: stringValue(json['industries']),
+      logoUrl: nullableStringValue(json['logoUrl']),
+      websiteUrl: nullableStringValue(json['websiteUrl']),
+      verificationDocumentUrl:
+          nullableStringValue(json['verificationDocumentUrl']),
       verified: boolValue(json['verified']),
     );
   }
@@ -143,17 +153,26 @@ class SponsorProfileUpsertRequest {
     required this.companyName,
     required this.description,
     required this.industries,
+    required this.logoUrl,
+    required this.websiteUrl,
+    required this.verificationDocumentUrl,
   });
 
   final String companyName;
   final String description;
   final String industries;
+  final String? logoUrl;
+  final String? websiteUrl;
+  final String? verificationDocumentUrl;
 
   Map<String, dynamic> toJson() {
     return {
       'companyName': companyName,
       'description': description,
       'industries': industries,
+      'logoUrl': logoUrl,
+      'websiteUrl': websiteUrl,
+      'verificationDocumentUrl': verificationDocumentUrl,
     };
   }
 }

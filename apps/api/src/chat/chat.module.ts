@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
 import { NotificationsModule } from '../notifications/notifications.module';
-import { User } from '../users/entities';
+import { Session, User } from '../users/entities';
 import { ChatController } from './chat.controller';
 import { ChatGateway } from './chat.gateway';
 import { ChatService } from './chat.service';
@@ -16,6 +16,7 @@ import { Conversation, ConversationParticipant, Message } from './entities';
       Conversation,
       ConversationParticipant,
       Message,
+      Session,
       User,
     ]),
   ],

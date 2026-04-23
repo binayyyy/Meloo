@@ -6,7 +6,7 @@ const outputDir = path.resolve(process.cwd(), '.tooling/demo');
 
 const userDefinitions = {
   admin: {
-    email: 'admin@smarteventhub.local',
+    email: 'admin@meloo.local',
     password: 'Password123!',
     role: 'admin',
     profile: {
@@ -16,7 +16,7 @@ const userDefinitions = {
     },
   },
   organizer: {
-    email: 'organizer@smarteventhub.local',
+    email: 'organizer@meloo.local',
     password: 'Password123!',
     role: 'organizer',
     profile: {
@@ -26,7 +26,7 @@ const userDefinitions = {
     },
   },
   vendor: {
-    email: 'vendor@smarteventhub.local',
+    email: 'vendor@meloo.local',
     password: 'Password123!',
     role: 'vendor',
     profile: {
@@ -36,7 +36,7 @@ const userDefinitions = {
     },
   },
   sponsor: {
-    email: 'sponsor@smarteventhub.local',
+    email: 'sponsor@meloo.local',
     password: 'Password123!',
     role: 'sponsor',
     profile: {
@@ -46,7 +46,7 @@ const userDefinitions = {
     },
   },
   attendee: {
-    email: 'attendee@smarteventhub.local',
+    email: 'attendee@meloo.local',
     password: 'Password123!',
     role: 'attendee',
     profile: {
@@ -67,6 +67,7 @@ const demoNames = {
 
 async function main() {
   await mkdir(outputDir, { recursive: true });
+  await waitForApi();
 
   const sessions = {};
   for (const [role, definition] of Object.entries(userDefinitions)) {
@@ -98,6 +99,9 @@ async function main() {
         categoryId: technologyCategory.id,
         venue: 'Pier 48 Conference Hall',
         city: 'San Francisco',
+        latitude: 37.7749,
+        longitude: -122.4194,
+        vendorMatchRadiusKm: 70,
         startAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 18).toISOString(),
         endAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 18 + 1000 * 60 * 60 * 8).toISOString(),
         status: 'published',
@@ -159,6 +163,9 @@ async function main() {
         'Full-service AV and on-site operations partner for conferences, showcases, and city-scale activations.',
       category: 'AV & production',
       serviceArea: 'San Francisco Bay Area',
+      latitude: 37.7849,
+      longitude: -122.4094,
+      travelRadiusKm: 90,
     },
   });
   await requestJson('/vendors/me/booking-preference', {
@@ -415,6 +422,21 @@ async function main() {
 }
 
 async function authenticateUser(definition) {
+  if (definition.role === 'admin') {
+    return requestJson('/auth/bootstrap-local-admin', {
+      method: 'POST',
+      headers: {
+        'x-setup-key':
+          process.env.LOCAL_SETUP_KEY ?? 'change-this-local-setup-key',
+      },
+      body: {
+        email: definition.email,
+        password: definition.password,
+        fullName: definition.profile.fullName,
+      },
+    });
+  }
+
   try {
     return await requestJson('/auth/signup', {
       method: 'POST',
@@ -495,6 +517,7 @@ async function requestJson(pathname, options = {}) {
     headers: {
       ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
       ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(options.headers ?? {}),
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
@@ -519,3 +542,18 @@ main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
+
+async function waitForApi() {
+  const attempts = 30;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      await requestJson('/event-categories');
+      return;
+    } catch (error) {
+      if (attempt === attempts) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+  }
+}

@@ -40,7 +40,8 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(authController.errorMessage ?? 'Sign in failed')),
+        SnackBar(
+            content: Text(authController.errorMessage ?? 'Sign in failed')),
       );
     }
   }
@@ -50,14 +51,14 @@ class _LoginScreenState extends State<LoginScreen> {
     final authController = AuthScope.of(context);
 
     return AuthScaffold(
-      eyebrow: 'Multi-role access',
+      eyebrow: 'Meloo access',
       title: 'Sign in',
-      subtitle:
-          'Use the same account across attendee, organizer, vendor, sponsor, and admin operations.',
+      subtitle: 'Sign in to your Meloo workspace.',
       highlights: const [
-        'Discovery',
-        'Operations',
-        'Support',
+        'Attendee',
+        'Organizer',
+        'Vendor',
+        'Sponsor',
       ],
       footer: Wrap(
         spacing: 8,
@@ -133,7 +134,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 2),
                       child: Text(
-                        authController.isLoading ? 'Signing in...' : 'Sign in',
+                        authController.isLoading
+                            ? 'Signing in...'
+                            : 'Continue to Meloo',
                       ),
                     ),
                   ),
