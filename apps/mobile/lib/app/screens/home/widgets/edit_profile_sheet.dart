@@ -219,6 +219,9 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('AI assist'),
+                subtitle: const Text(
+                  'Enables AI drafting and automatic chat replies for this profile.',
+                ),
                 value: _aiAssistEnabled,
                 onChanged: isSubmitting
                     ? null

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../sponsors/sponsor_models.dart';
+import '../../../widgets/modal_form_scaffold.dart';
 
 class ExpressSponsorshipInterestSheet extends StatefulWidget {
   const ExpressSponsorshipInterestSheet({
@@ -56,63 +57,38 @@ class _ExpressSponsorshipInterestSheetState
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        20,
-        20,
-        MediaQuery.of(context).viewInsets.bottom + 20,
-      ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Express interest in ${widget.opportunity.title}',
-                style:
-                    const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Event: ${widget.opportunity.event.title}',
-                style: const TextStyle(
-                  color: Color(0xFF5F645F),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _messageController,
-                maxLines: 5,
-                decoration: const InputDecoration(
-                  labelText: 'Message to organizer',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => value == null || value.trim().length < 20
-                    ? 'Use at least 20 characters'
-                    : null,
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: widget.isSubmitting ? null : _submit,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: Text(
-                      widget.isSubmitting
-                          ? 'Submitting interest...'
-                          : 'Submit interest',
-                    ),
-                  ),
-                ),
-              ),
-            ],
+    return Form(
+      key: _formKey,
+      child: ModalFormScaffold(
+        title: 'Express interest',
+        subtitle:
+            'Send a concise sponsor note for ${widget.opportunity.title} tied to ${widget.opportunity.event.title}.',
+        icon: Icons.favorite_border_rounded,
+        actionLabel: 'Submit interest',
+        submittingLabel: 'Submitting interest...',
+        isSubmitting: widget.isSubmitting,
+        onSubmit: _submit,
+        children: [
+          ModalFormInfoCard(
+            title: widget.opportunity.event.title,
+            message:
+                'Use this note to show fit, sponsorship intent, and why your brand belongs in the event mix.',
+            icon: Icons.event_rounded,
           ),
-        ),
+          ModalFormSection(
+            title: 'Message to organizer',
+            subtitle: 'Keep it specific enough to justify a response.',
+            icon: Icons.chat_bubble_outline_rounded,
+            child: TextFormField(
+              controller: _messageController,
+              maxLines: 5,
+              decoration: const InputDecoration(labelText: 'Message'),
+              validator: (value) => value == null || value.trim().length < 20
+                  ? 'Use at least 20 characters'
+                  : null,
+            ),
+          ),
+        ],
       ),
     );
   }

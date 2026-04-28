@@ -19,7 +19,10 @@ import '../../session/auth_models.dart';
 import '../../session/auth_scope.dart';
 import '../../vendors/vendor_models.dart';
 import '../../vendors/vendors_controller.dart';
+import '../../widgets/brand_lockup.dart';
+import '../../widgets/workflow_page_scaffold.dart';
 import '../../router.dart';
+import '../chat/conversation_screen.dart';
 import 'event_detail_screen.dart';
 import 'widgets/create_event_sheet.dart';
 import 'widgets/create_sponsorship_opportunity_sheet.dart';
@@ -197,221 +200,191 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
       return;
     }
 
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) {
-        return AnimatedBuilder(
-          animation: _eventsController,
-          builder: (context, _) {
-            return CreateEventSheet(
-              accessToken: session.tokens.accessToken,
-              categories: _eventsController.categories,
-              isSubmitting: _eventsController.isSubmitting,
-              onSubmit: (request) async {
-                try {
-                  await _eventsController.createEvent(session, request);
-                  if (!mounted) {
-                    return;
-                  }
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        _eventsController.successMessage ?? 'Event created',
-                      ),
-                    ),
-                  );
-                } on ApiException {
-                  if (!mounted) {
-                    return;
-                  }
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        _eventsController.errorMessage ??
-                            'Event creation failed',
-                      ),
-                    ),
-                  );
+    await _pushWorkflowPage((context) {
+      return AnimatedBuilder(
+        animation: _eventsController,
+        builder: (context, _) {
+          return CreateEventSheet(
+            accessToken: session.tokens.accessToken,
+            categories: _eventsController.categories,
+            isSubmitting: _eventsController.isSubmitting,
+            onSubmit: (request) async {
+              try {
+                await _eventsController.createEvent(session, request);
+                if (!mounted) {
+                  return;
                 }
-              },
-            );
-          },
-        );
-      },
-    );
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      _eventsController.successMessage ?? 'Event created',
+                    ),
+                  ),
+                );
+              } on ApiException {
+                if (!mounted) {
+                  return;
+                }
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      _eventsController.errorMessage ?? 'Event creation failed',
+                    ),
+                  ),
+                );
+              }
+            },
+          );
+        },
+      );
+    });
   }
 
   Future<void> _openVendorProfileSheet(AuthSession session) async {
     final messenger = ScaffoldMessenger.of(context);
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) {
-        return AnimatedBuilder(
-          animation: _vendorsController,
-          builder: (context, _) {
-            return VendorProfileSheet(
-              accessToken: session.tokens.accessToken,
-              initialProfile: _vendorsController.myVendorProfile,
-              isSubmitting: _vendorsController.isSubmitting,
-              onSubmit: (request) async {
-                try {
-                  await _vendorsController.upsertMyVendorProfile(
-                      session, request);
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _vendorsController.successMessage ??
-                              'Profile updated',
-                        ),
+    await _pushWorkflowPage((context) {
+      return AnimatedBuilder(
+        animation: _vendorsController,
+        builder: (context, _) {
+          return VendorProfileSheet(
+            accessToken: session.tokens.accessToken,
+            initialProfile: _vendorsController.myVendorProfile,
+            isSubmitting: _vendorsController.isSubmitting,
+            onSubmit: (request) async {
+              try {
+                await _vendorsController.upsertMyVendorProfile(session, request);
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _vendorsController.successMessage ?? 'Profile updated',
                       ),
-                    );
-                  }
-                } on ApiException {
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _vendorsController.errorMessage ??
-                              'Profile update failed',
-                        ),
-                      ),
-                    );
-                  }
+                    ),
+                  );
                 }
-              },
-            );
-          },
-        );
-      },
-    );
+              } on ApiException {
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _vendorsController.errorMessage ??
+                            'Profile update failed',
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+          );
+        },
+      );
+    });
   }
 
   Future<void> _openEditProfileSheet(AuthSession session) async {
     final authController = AuthScope.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) {
-        return AnimatedBuilder(
-          animation: authController,
-          builder: (context, _) {
-            final currentUser = authController.session?.user ?? session.user;
-            return EditProfileSheet(
-              accessToken: session.tokens.accessToken,
-              user: currentUser,
-              onSubmit: (profile, settings) async {
-                await authController.updateMe(
-                  profile: profile,
-                  settings: settings,
+    await _pushWorkflowPage((context) {
+      return AnimatedBuilder(
+        animation: authController,
+        builder: (context, _) {
+          final currentUser = authController.session?.user ?? session.user;
+          return EditProfileSheet(
+            accessToken: session.tokens.accessToken,
+            user: currentUser,
+            onSubmit: (profile, settings) async {
+              await authController.updateMe(
+                profile: profile,
+                settings: settings,
+              );
+              if (mounted) {
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Profile updated')),
                 );
-                if (mounted) {
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('Profile updated')),
-                  );
-                }
-              },
-            );
-          },
-        );
-      },
-    );
+              }
+            },
+          );
+        },
+      );
+    });
   }
 
   Future<void> _openVendorServiceSheet(AuthSession session) async {
     final messenger = ScaffoldMessenger.of(context);
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) {
-        return AnimatedBuilder(
-          animation: _vendorsController,
-          builder: (context, _) {
-            return CreateVendorServiceSheet(
-              isSubmitting: _vendorsController.isSubmitting,
-              onSubmit: (request) async {
-                try {
-                  await _vendorsController.createVendorService(
-                      session, request);
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _vendorsController.successMessage ?? 'Service added',
-                        ),
+    await _pushWorkflowPage((context) {
+      return AnimatedBuilder(
+        animation: _vendorsController,
+        builder: (context, _) {
+          return CreateVendorServiceSheet(
+            isSubmitting: _vendorsController.isSubmitting,
+            onSubmit: (request) async {
+              try {
+                await _vendorsController.createVendorService(session, request);
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _vendorsController.successMessage ?? 'Service added',
                       ),
-                    );
-                  }
-                } on ApiException {
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _vendorsController.errorMessage ??
-                              'Service creation failed',
-                        ),
-                      ),
-                    );
-                  }
+                    ),
+                  );
                 }
-              },
-            );
-          },
-        );
-      },
-    );
+              } on ApiException {
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _vendorsController.errorMessage ??
+                            'Service creation failed',
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+          );
+        },
+      );
+    });
   }
 
   Future<void> _openVendorPackageSheet(AuthSession session) async {
     final messenger = ScaffoldMessenger.of(context);
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) {
-        return AnimatedBuilder(
-          animation: _vendorsController,
-          builder: (context, _) {
-            return CreateVendorPackageSheet(
-              isSubmitting: _vendorsController.isSubmitting,
-              onSubmit: (request) async {
-                try {
-                  await _vendorsController.createVendorPackage(
-                      session, request);
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _vendorsController.successMessage ?? 'Package added',
-                        ),
+    await _pushWorkflowPage((context) {
+      return AnimatedBuilder(
+        animation: _vendorsController,
+        builder: (context, _) {
+          return CreateVendorPackageSheet(
+            isSubmitting: _vendorsController.isSubmitting,
+            onSubmit: (request) async {
+              try {
+                await _vendorsController.createVendorPackage(session, request);
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _vendorsController.successMessage ?? 'Package added',
                       ),
-                    );
-                  }
-                } on ApiException {
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _vendorsController.errorMessage ??
-                              'Package creation failed',
-                        ),
-                      ),
-                    );
-                  }
+                    ),
+                  );
                 }
-              },
-            );
-          },
-        );
-      },
-    );
+              } on ApiException {
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _vendorsController.errorMessage ??
+                            'Package creation failed',
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+          );
+        },
+      );
+    });
   }
 
   Future<void> _openVendorRequestSheet(
@@ -427,196 +400,174 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
       return;
     }
 
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) {
-        return AnimatedBuilder(
-          animation: _vendorsController,
-          builder: (context, _) {
-            return CreateVendorRequestSheet(
-              vendor: vendor,
-              events: _eventsController.myEvents,
-              isSubmitting: _vendorsController.isSubmitting,
-              onSubmit: (request) async {
-                try {
-                  await _vendorsController.createVendorRequest(
-                    session,
-                    vendorId: vendor.id,
-                    request: request,
+    await _pushWorkflowPage((context) {
+      return AnimatedBuilder(
+        animation: _vendorsController,
+        builder: (context, _) {
+          return CreateVendorRequestSheet(
+            vendor: vendor,
+            events: _eventsController.myEvents,
+            isSubmitting: _vendorsController.isSubmitting,
+            onSubmit: (request) async {
+              try {
+                await _vendorsController.createVendorRequest(
+                  session,
+                  vendorId: vendor.id,
+                  request: request,
+                );
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _vendorsController.successMessage ?? 'Vendor request sent',
+                      ),
+                    ),
                   );
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _vendorsController.successMessage ??
-                              'Vendor request sent',
-                        ),
-                      ),
-                    );
-                  }
-                } on ApiException {
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _vendorsController.errorMessage ??
-                              'Vendor request failed',
-                        ),
-                      ),
-                    );
-                  }
                 }
-              },
-            );
-          },
-        );
-      },
-    );
+              } on ApiException {
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _vendorsController.errorMessage ??
+                            'Vendor request failed',
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+          );
+        },
+      );
+    });
   }
 
   Future<void> _openCreateSupportTicketSheet(AuthSession session) async {
     final messenger = ScaffoldMessenger.of(context);
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) {
-        return AnimatedBuilder(
-          animation: _supportController,
-          builder: (context, _) {
-            return CreateSupportTicketSheet(
-              isSubmitting: _supportController.isSubmitting,
-              onSubmit: (request) async {
-                try {
-                  await _supportController.createTicket(session, request);
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _supportController.successMessage ?? 'Ticket created',
-                        ),
+    await _pushWorkflowPage((context) {
+      return AnimatedBuilder(
+        animation: _supportController,
+        builder: (context, _) {
+          return CreateSupportTicketSheet(
+            isSubmitting: _supportController.isSubmitting,
+            onSubmit: (request) async {
+              try {
+                await _supportController.createTicket(session, request);
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _supportController.successMessage ?? 'Ticket created',
                       ),
-                    );
-                  }
-                } on ApiException {
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _supportController.errorMessage ??
-                              'Ticket creation failed',
-                        ),
-                      ),
-                    );
-                  }
+                    ),
+                  );
                 }
-              },
-            );
-          },
-        );
-      },
-    );
+              } on ApiException {
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _supportController.errorMessage ??
+                            'Ticket creation failed',
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+          );
+        },
+      );
+    });
   }
 
   Future<void> _openPlanningAssistantSheet(AuthSession session) async {
     final messenger = ScaffoldMessenger.of(context);
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) {
-        return AnimatedBuilder(
-          animation: _aiController,
-          builder: (context, _) {
-            return PlanningAssistantSheet(
-              events: _eventsController.myEvents,
-              isSubmitting: _aiController.isPlanning,
-              onSubmit: (request) async {
-                try {
-                  await _aiController.generatePlanningBrief(
-                    session,
-                    eventId: request.eventId,
-                    expectedAttendees: request.expectedAttendees,
-                    budget: request.budget,
-                    planningGoal: request.planningGoal,
+    await _pushWorkflowPage((context) {
+      return AnimatedBuilder(
+        animation: _aiController,
+        builder: (context, _) {
+          return PlanningAssistantSheet(
+            events: _eventsController.myEvents,
+            isSubmitting: _aiController.isPlanning,
+            onSubmit: (request) async {
+              try {
+                await _aiController.generatePlanningBrief(
+                  session,
+                  eventId: request.eventId,
+                  expectedAttendees: request.expectedAttendees,
+                  budget: request.budget,
+                  planningGoal: request.planningGoal,
+                );
+                if (mounted) {
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('Planning brief generated'),
+                    ),
                   );
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      const SnackBar(
-                        content: Text('Planning brief generated'),
-                      ),
-                    );
-                  }
-                } on ApiException {
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _aiController.errorMessage ??
-                              'Unable to generate planning brief',
-                        ),
-                      ),
-                    );
-                  }
                 }
-              },
-            );
-          },
-        );
-      },
-    );
+              } on ApiException {
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _aiController.errorMessage ??
+                            'Unable to generate planning brief',
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+          );
+        },
+      );
+    });
   }
 
   Future<void> _openSponsorProfileSheet(AuthSession session) async {
     final messenger = ScaffoldMessenger.of(context);
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) {
-        return AnimatedBuilder(
-          animation: _sponsorsController,
-          builder: (context, _) {
-            return SponsorProfileSheet(
-              accessToken: session.tokens.accessToken,
-              initialProfile: _sponsorsController.mySponsorProfile,
-              isSubmitting: _sponsorsController.isSubmitting,
-              onSubmit: (request) async {
-                try {
-                  await _sponsorsController.upsertMySponsorProfile(
-                    session,
-                    request,
+    await _pushWorkflowPage((context) {
+      return AnimatedBuilder(
+        animation: _sponsorsController,
+        builder: (context, _) {
+          return SponsorProfileSheet(
+            accessToken: session.tokens.accessToken,
+            initialProfile: _sponsorsController.mySponsorProfile,
+            isSubmitting: _sponsorsController.isSubmitting,
+            onSubmit: (request) async {
+              try {
+                await _sponsorsController.upsertMySponsorProfile(
+                  session,
+                  request,
+                );
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _sponsorsController.successMessage ?? 'Profile updated',
+                      ),
+                    ),
                   );
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _sponsorsController.successMessage ??
-                              'Profile updated',
-                        ),
-                      ),
-                    );
-                  }
-                } on ApiException {
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _sponsorsController.errorMessage ??
-                              'Profile update failed',
-                        ),
-                      ),
-                    );
-                  }
                 }
-              },
-            );
-          },
-        );
-      },
-    );
+              } on ApiException {
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _sponsorsController.errorMessage ??
+                            'Profile update failed',
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+          );
+        },
+      );
+    });
   }
 
   Future<void> _openCreateOpportunitySheet(AuthSession session) async {
@@ -628,48 +579,42 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
       return;
     }
 
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) {
-        return AnimatedBuilder(
-          animation: _sponsorsController,
-          builder: (context, _) {
-            return CreateSponsorshipOpportunitySheet(
-              events: _eventsController.myEvents,
-              isSubmitting: _sponsorsController.isSubmitting,
-              onSubmit: (request) async {
-                try {
-                  await _sponsorsController.createOpportunity(session, request);
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _sponsorsController.successMessage ??
-                              'Opportunity created',
-                        ),
+    await _pushWorkflowPage((context) {
+      return AnimatedBuilder(
+        animation: _sponsorsController,
+        builder: (context, _) {
+          return CreateSponsorshipOpportunitySheet(
+            events: _eventsController.myEvents,
+            isSubmitting: _sponsorsController.isSubmitting,
+            onSubmit: (request) async {
+              try {
+                await _sponsorsController.createOpportunity(session, request);
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _sponsorsController.successMessage ?? 'Opportunity created',
                       ),
-                    );
-                  }
-                } on ApiException {
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _sponsorsController.errorMessage ??
-                              'Opportunity creation failed',
-                        ),
-                      ),
-                    );
-                  }
+                    ),
+                  );
                 }
-              },
-            );
-          },
-        );
-      },
-    );
+              } on ApiException {
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _sponsorsController.errorMessage ??
+                            'Opportunity creation failed',
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+          );
+        },
+      );
+    });
   }
 
   Future<void> _openExpressInterestSheet(
@@ -677,52 +622,46 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
     SponsorshipOpportunityModel opportunity,
   ) async {
     final messenger = ScaffoldMessenger.of(context);
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) {
-        return AnimatedBuilder(
-          animation: _sponsorsController,
-          builder: (context, _) {
-            return ExpressSponsorshipInterestSheet(
-              opportunity: opportunity,
-              isSubmitting: _sponsorsController.isSubmitting,
-              onSubmit: (request) async {
-                try {
-                  await _sponsorsController.expressInterest(
-                    session,
-                    opportunity.id,
-                    request,
+    await _pushWorkflowPage((context) {
+      return AnimatedBuilder(
+        animation: _sponsorsController,
+        builder: (context, _) {
+          return ExpressSponsorshipInterestSheet(
+            opportunity: opportunity,
+            isSubmitting: _sponsorsController.isSubmitting,
+            onSubmit: (request) async {
+              try {
+                await _sponsorsController.expressInterest(
+                  session,
+                  opportunity.id,
+                  request,
+                );
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _sponsorsController.successMessage ?? 'Interest submitted',
+                      ),
+                    ),
                   );
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _sponsorsController.successMessage ??
-                              'Interest submitted',
-                        ),
-                      ),
-                    );
-                  }
-                } on ApiException {
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _sponsorsController.errorMessage ??
-                              'Interest submission failed',
-                        ),
-                      ),
-                    );
-                  }
                 }
-              },
-            );
-          },
-        );
-      },
-    );
+              } on ApiException {
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _sponsorsController.errorMessage ??
+                            'Interest submission failed',
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+          );
+        },
+      );
+    });
   }
 
   Future<void> _openOpportunityInterestsSheet(
@@ -738,11 +677,10 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
       if (!mounted) {
         return;
       }
-      await showModalBottomSheet<void>(
-        context: context,
-        showDragHandle: true,
-        builder: (context) {
-          return _OpportunityInterestsSheet(
+      await _pushWorkflowPage((context) {
+        return SizedBox(
+          height: MediaQuery.of(context).size.height * 0.72,
+          child: _OpportunityInterestsSheet(
             opportunity: opportunity,
             interests: interests,
             onStartChat: (interest) => _openDirectConversation(
@@ -750,9 +688,9 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
               participantUserId: interest.sponsor.userId,
               participantLabel: interest.sponsor.companyName,
             ),
-          );
-        },
-      );
+          ),
+        );
+      });
     } on ApiException {
       if (mounted) {
         messenger.showSnackBar(
@@ -809,27 +747,41 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
       if (!mounted) {
         return;
       }
-      await showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        showDragHandle: true,
-        builder: (context) {
-          return AnimatedBuilder(
-            animation: _chatController,
-            builder: (context, _) {
-              return _ChatConversationSheet(
-                title: title ??
-                    _chatController.counterpartFor(conversation)?.displayName ??
-                    'Conversation',
-                messages: _chatController.activeMessages,
-                currentUserId: session.user.id,
-                isLoading: _chatController.isOpeningConversation,
-                isSending: _chatController.isSending,
-                onSend: _chatController.sendMessage,
-              );
-            },
-          );
-        },
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (context) {
+            return AnimatedBuilder(
+              animation: _chatController,
+              builder: (context, _) {
+                return ConversationScreen(
+                  title: title ??
+                      _chatController.counterpartFor(conversation)?.displayName ??
+                      'Conversation',
+                  accessToken: session.tokens.accessToken,
+                  messages: _chatController.activeMessages,
+                  currentUserId: session.user.id,
+                  currentUserRole: session.user.role,
+                  aiAssistEnabled: session.user.settings?.aiAssistEnabled ?? true,
+                  isLoading: _chatController.isOpeningConversation,
+                  isSending: _chatController.isSending,
+                  isDrafting: _chatController.isDrafting,
+                  onSend: _chatController.sendMessage,
+                  onSendAttachment: _chatController.sendAttachment,
+                  onGenerateDraft: ({
+                    required intent,
+                    prompt,
+                  }) =>
+                      _chatController.generateAssistantDraft(
+                    session,
+                    intent: intent,
+                    prompt: prompt,
+                  ),
+                );
+              },
+            );
+          },
+        ),
       );
       if (mounted) {
         await _chatController.load(session);
@@ -859,35 +811,37 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
       );
     }
 
-    final heroMetrics = _heroMetricsForRole(user.role);
+    final navigation = _navigationForRole(user.role)[_selectedTab];
+    final heroMetrics = _summaryMetricsForSelectedTab(user.role);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F5F9),
+      backgroundColor: const Color(0xFFF3F5F7),
       appBar: AppBar(
-        toolbarHeight: 76,
-        titleSpacing: 20,
+        toolbarHeight: 70,
+        titleSpacing: 18,
         title: Row(
           children: [
-            Image.asset(
-              'assets/branding/meloo-mark-v1.png',
-              width: 34,
-              height: 34,
-              fit: BoxFit.contain,
+            const MelooBrandMark(
+              size: 32,
+              padding: 7,
+              borderRadius: 11,
+              backgroundColor: Color(0xFFF8FAFB),
+              showBorder: true,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Meloo',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 2),
                 Text(
-                  _workspaceLabelForRole(user.role),
+                  navigation.headline,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  navigation.label,
                   style: const TextStyle(
-                    color: Color(0xFF64748B),
-                    fontSize: 13,
+                    color: Color(0xFF6B7280),
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -897,8 +851,20 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: IconButton.filledTonal(
+            padding: const EdgeInsets.only(right: 2),
+            child: Badge(
+              isLabelVisible: _notificationsController.unreadCount > 0,
+              label: Text(_notificationsController.unreadCount.toString()),
+              child: IconButton(
+                onPressed: () => setState(() => _selectedTab = 2),
+                icon: const Icon(Icons.notifications_none_rounded),
+                tooltip: 'Inbox',
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: IconButton(
               onPressed: authController.signOut,
               icon: const Icon(Icons.logout_rounded),
               tooltip: 'Logout',
@@ -914,10 +880,10 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
             _selectedTab = index;
           });
         },
-        height: 74,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        backgroundColor: const Color(0xFFF8FBFE),
-        indicatorColor: const Color(0x1F1E9C8B),
+        height: 66,
+        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+        backgroundColor: Colors.white,
+        indicatorColor: const Color(0x162F6B57),
         destinations: _navigationForRole(user.role)
             .map(
               (item) => NavigationDestination(
@@ -950,10 +916,17 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          return _buildTabSurface(
-            session: session,
-            user: user,
-            heroMetrics: heroMetrics,
+          return AnimatedSwitcher(
+            duration: const Duration(milliseconds: 240),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            child: _buildTabSurface(
+              key: ValueKey('${user.role.name}-$_selectedTab'),
+              session: session,
+              user: user,
+              navigation: navigation,
+              heroMetrics: heroMetrics,
+            ),
           );
         },
       ),
@@ -961,12 +934,13 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
   }
 
   Widget _buildTabSurface({
+    required Key key,
     required AuthSession session,
     required UserModel user,
+    required _NavDestinationData navigation,
     required List<_HeroMetric> heroMetrics,
   }) {
     final palette = _paletteForRole(user.role);
-    final navigation = _navigationForRole(user.role)[_selectedTab];
     final sections = switch (_selectedTab) {
       0 => _buildExploreSections(session, user),
       1 => _buildWorkspaceSections(session, user),
@@ -975,6 +949,7 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
     };
 
     return DecoratedBox(
+      key: key,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -988,20 +963,20 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
       child: RefreshIndicator(
         onRefresh: () => _loadAll(session),
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 120),
+          padding: const EdgeInsets.fromLTRB(18, 12, 18, 108),
           children: [
             _HeroCard(
-              roleLabel: user.role.name,
-              headline: _headlineForRole(user.role),
-              supporting: _bodyForRole(user.role),
+              roleLabel: _workspaceLabelForRole(user.role),
+              headline: navigation.headline,
+              supporting: navigation.description,
               metrics: heroMetrics,
               palette: palette,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             _RoleLeadPanel(
-              title: navigation.headline,
+              title: _panelTitleForSelectedTab(),
               actions: _quickActionsForRole(session, user.role),
-              signals: _leadSignalsForRole(user.role),
+              signals: _signalsForSelectedTab(user.role),
               palette: palette,
             ),
             ..._buildSystemBanners(),
@@ -1010,6 +985,85 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
         ),
       ),
     );
+  }
+
+  List<_HeroMetric> _summaryMetricsForSelectedTab(UserRole role) {
+    final signals = _signalsForSelectedTab(role);
+    return signals
+        .take(3)
+        .map((signal) => _HeroMetric(signal.label, signal.value))
+        .toList(growable: false);
+  }
+
+  List<_LeadSignal> _signalsForSelectedTab(UserRole role) {
+    switch (_selectedTab) {
+      case 0:
+        return _leadSignalsForRole(role);
+      case 1:
+        switch (role) {
+          case UserRole.attendee:
+            return _attendeePlanSignals();
+          case UserRole.organizer:
+            return _organizerStudioSignals(role);
+          case UserRole.vendor:
+            return _vendorWorkSignals();
+          case UserRole.sponsor:
+            return _sponsorDealSignals();
+          case UserRole.admin:
+            return _adminReviewSignals();
+        }
+      case 2:
+        return _inboxSignals(role);
+      default:
+        return [
+          _LeadSignal(
+            label: 'Role',
+            value: role.name,
+            note: 'Account identity',
+            icon: Icons.person_rounded,
+            color: const Color(0xFF355C7D),
+          ),
+          _LeadSignal(
+            label: 'Alerts',
+            value: userProfileAlertValue(role),
+            note: 'Notification preference',
+            icon: Icons.notifications_active_rounded,
+            color: const Color(0xFF2F6B57),
+          ),
+          _LeadSignal(
+            label: 'AI',
+            value: userProfileAiValue(role),
+            note: 'Assistant state',
+            icon: Icons.auto_awesome_rounded,
+            color: const Color(0xFF7C6A3A),
+          ),
+        ];
+    }
+  }
+
+  String userProfileAlertValue(UserRole role) {
+    final session = AuthScope.of(context).session;
+    final enabled = session?.user.settings?.notificationsEnabled ?? true;
+    return enabled ? 'On' : 'Off';
+  }
+
+  String userProfileAiValue(UserRole role) {
+    final session = AuthScope.of(context).session;
+    final enabled = session?.user.settings?.aiAssistEnabled ?? true;
+    return enabled ? 'On' : 'Off';
+  }
+
+  String _panelTitleForSelectedTab() {
+    switch (_selectedTab) {
+      case 0:
+        return 'Discover';
+      case 1:
+        return 'Actions';
+      case 2:
+        return 'Updates';
+      default:
+        return 'Account';
+    }
   }
 
   List<Widget> _buildSystemBanners() {
@@ -1054,38 +1108,38 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
     switch (role) {
       case UserRole.attendee:
         return const _RolePalette(
-          canvasTop: Color(0xFFF4F7FB),
-          canvasBottom: Color(0xFFE3EBF4),
-          accent: Color(0xFF1B6E99),
-          support: Color(0xFFE67E4B),
+          canvasTop: Color(0xFFF6F8F9),
+          canvasBottom: Color(0xFFE8EDF1),
+          accent: Color(0xFF355C7D),
+          support: Color(0xFF6C8B9E),
         );
       case UserRole.organizer:
         return const _RolePalette(
-          canvasTop: Color(0xFFF0F6F3),
-          canvasBottom: Color(0xFFDDECE4),
-          accent: Color(0xFF0D6B57),
-          support: Color(0xFFE17D37),
+          canvasTop: Color(0xFFF5F8F5),
+          canvasBottom: Color(0xFFE7EFE9),
+          accent: Color(0xFF2F6B57),
+          support: Color(0xFF5F8776),
         );
       case UserRole.vendor:
         return const _RolePalette(
-          canvasTop: Color(0xFFF7F4EE),
-          canvasBottom: Color(0xFFEEE4D4),
-          accent: Color(0xFF8A5C1C),
-          support: Color(0xFF135D77),
+          canvasTop: Color(0xFFF8F6F2),
+          canvasBottom: Color(0xFFEDE7DF),
+          accent: Color(0xFF775B3A),
+          support: Color(0xFF8D7962),
         );
       case UserRole.sponsor:
         return const _RolePalette(
-          canvasTop: Color(0xFFF2F6FA),
-          canvasBottom: Color(0xFFE1EAF3),
-          accent: Color(0xFF305D8E),
-          support: Color(0xFFD67243),
+          canvasTop: Color(0xFFF6F7FA),
+          canvasBottom: Color(0xFFE7EBF2),
+          accent: Color(0xFF4C5F7A),
+          support: Color(0xFF7A8596),
         );
       case UserRole.admin:
         return const _RolePalette(
-          canvasTop: Color(0xFFF0F4F9),
-          canvasBottom: Color(0xFFDDE7F1),
-          accent: Color(0xFF173B63),
-          support: Color(0xFF0D6B57),
+          canvasTop: Color(0xFFF5F7F9),
+          canvasBottom: Color(0xFFE5EAF0),
+          accent: Color(0xFF324A5F),
+          support: Color(0xFF5B7184),
         );
     }
   }
@@ -2515,30 +2569,32 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
   ) {
     switch (role) {
       case UserRole.organizer:
-        return FloatingActionButton.extended(
+        return FloatingActionButton.small(
           onPressed: () => _openCreateEventSheet(session),
-          icon: const Icon(Icons.add),
-          label: const Text('Create event'),
+          tooltip: 'Create event',
+          child: const Icon(Icons.add_rounded),
         );
       case UserRole.admin:
         return null;
       case UserRole.vendor:
-        return FloatingActionButton.extended(
+        return FloatingActionButton.small(
           onPressed: () => _vendorsController.myVendorProfile == null
               ? _openVendorProfileSheet(session)
               : _openVendorServiceSheet(session),
-          icon: const Icon(Icons.design_services_rounded),
-          label: Text(
+          tooltip: _vendorsController.myVendorProfile == null
+              ? 'Set profile'
+              : 'Add service',
+          child: Icon(
             _vendorsController.myVendorProfile == null
-                ? 'Set profile'
-                : 'Add service',
+                ? Icons.store_rounded
+                : Icons.design_services_rounded,
           ),
         );
       case UserRole.sponsor:
-        return FloatingActionButton.extended(
+        return FloatingActionButton.small(
           onPressed: () => _openSponsorProfileSheet(session),
-          icon: const Icon(Icons.campaign_rounded),
-          label: const Text('Brand profile'),
+          tooltip: 'Brand profile',
+          child: const Icon(Icons.campaign_rounded),
         );
       case UserRole.attendee:
         return null;
@@ -2844,36 +2900,6 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
     }
   }
 
-  String _headlineForRole(UserRole role) {
-    switch (role) {
-      case UserRole.attendee:
-        return 'Meloo attendee';
-      case UserRole.organizer:
-        return 'Meloo organizer';
-      case UserRole.vendor:
-        return 'Meloo vendor';
-      case UserRole.sponsor:
-        return 'Meloo sponsor';
-      case UserRole.admin:
-        return 'Meloo platforms';
-    }
-  }
-
-  String _bodyForRole(UserRole role) {
-    switch (role) {
-      case UserRole.attendee:
-        return 'Explore, save, and book.';
-      case UserRole.organizer:
-        return 'Events, vendors, and sponsors.';
-      case UserRole.vendor:
-        return 'Services, packages, and nearby demand.';
-      case UserRole.sponsor:
-        return 'Matches, interest, and deals.';
-      case UserRole.admin:
-        return 'Ops review, support, and platform visibility.';
-    }
-  }
-
   String _workspaceLabelForRole(UserRole role) {
     switch (role) {
       case UserRole.admin:
@@ -2889,86 +2915,6 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
     }
   }
 
-  List<_HeroMetric> _heroMetricsForRole(UserRole role) {
-    switch (role) {
-      case UserRole.attendee:
-        return [
-          _HeroMetric(
-              'Saved', _eventsController.favoriteEvents.length.toString()),
-          _HeroMetric(
-            'Booked',
-            _eventsController.myRegistrations.length.toString(),
-          ),
-          _HeroMetric(
-            'Alerts',
-            _notificationsController.unreadCount.toString(),
-          ),
-          _HeroMetric(
-            'Live',
-            _eventsController.publicEvents.length.toString(),
-          ),
-        ];
-      case UserRole.organizer:
-        return [
-          _HeroMetric('Events', _eventsController.myEvents.length.toString()),
-          _HeroMetric(
-            'Vendor reqs',
-            _vendorsController.myOrganizerRequests.length.toString(),
-          ),
-          _HeroMetric(
-            'Sponsors',
-            _sponsorsController.myOpportunities.length.toString(),
-          ),
-          _HeroMetric('Chats', _chatController.conversations.length.toString()),
-        ];
-      case UserRole.vendor:
-        return [
-          _HeroMetric(
-            'Requests',
-            _vendorsController.myVendorRequests.length.toString(),
-          ),
-          _HeroMetric(
-            'Services',
-            (_vendorsController.myVendorProfile?.services.length ?? 0)
-                .toString(),
-          ),
-          _HeroMetric(
-            'Packages',
-            (_vendorsController.myVendorProfile?.packages.length ?? 0)
-                .toString(),
-          ),
-          _HeroMetric('Chats', _chatController.conversations.length.toString()),
-        ];
-      case UserRole.sponsor:
-        return [
-          _HeroMetric(
-            'Interests',
-            _sponsorsController.myInterests.length.toString(),
-          ),
-          _HeroMetric(
-            'Open',
-            _sponsorsController.openOpportunities.length.toString(),
-          ),
-          _HeroMetric(
-            'Alerts',
-            _notificationsController.unreadCount.toString(),
-          ),
-          _HeroMetric('Chats', _chatController.conversations.length.toString()),
-        ];
-      case UserRole.admin:
-        return [
-          _HeroMetric(
-              'Events', _eventsController.publicEvents.length.toString()),
-          _HeroMetric(
-              'Vendors', _vendorsController.publicVendors.length.toString()),
-          _HeroMetric(
-            'Alerts',
-            _notificationsController.unreadCount.toString(),
-          ),
-          _HeroMetric('Chats', _chatController.conversations.length.toString()),
-        ];
-    }
-  }
 }
 
 class _NotificationCard extends StatelessWidget {
@@ -2982,6 +2928,7 @@ class _NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = _accentColorFor(notification.type);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
@@ -2990,10 +2937,22 @@ class _NotificationCard extends StatelessWidget {
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          color: notification.unread ? const Color(0xFFFFFCF7) : Colors.white,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: notification.unread
+                ? const [
+                    Color(0xFFFFFCF7),
+                    Color(0xFFF4F8F7),
+                  ]
+                : const [
+                    Colors.white,
+                    Color(0xFFF8F5EF),
+                  ],
+          ),
           border: Border.all(
             color: notification.unread
-                ? const Color(0xFFCC7A00)
+                ? accent
                 : const Color(0xFFE0D9CB),
           ),
         ),
@@ -3001,33 +2960,107 @@ class _NotificationCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(_iconFor(notification.type), color: accent),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    notification.title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        notification.title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatRelativeTimestamp(notification.createdAt),
+                        style: const TextStyle(
+                          color: Color(0xFF7A7369),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                const SizedBox(width: 12),
                 _StatusChip(
-                  label: notification.unread ? 'unread' : notification.type,
-                  color: notification.unread
-                      ? const Color(0xFFCC7A00)
-                      : const Color(0xFF54686B),
+                  label: notification.unread ? 'new' : notification.type,
+                  color: accent,
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
               notification.body,
               style: const TextStyle(color: Color(0xFF5F645F), height: 1.5),
             ),
+            if (notification.resourceType != null) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _MetaLabel(label: notification.resourceType!),
+                  _MetaLabel(label: _formatCompactTimestamp(notification.createdAt)),
+                ],
+              ),
+            ],
           ],
         ),
       ),
     );
+  }
+
+  IconData _iconFor(String type) {
+    switch (type) {
+      case 'chat':
+        return Icons.mark_chat_unread_rounded;
+      case 'payment':
+        return Icons.payments_rounded;
+      case 'booking':
+        return Icons.confirmation_number_rounded;
+      case 'vendor':
+        return Icons.storefront_rounded;
+      case 'sponsor':
+        return Icons.campaign_rounded;
+      case 'support':
+        return Icons.support_agent_rounded;
+      default:
+        return Icons.notifications_active_rounded;
+    }
+  }
+
+  Color _accentColorFor(String type) {
+    switch (type) {
+      case 'chat':
+        return const Color(0xFF4F5BD5);
+      case 'payment':
+        return const Color(0xFF0E6B5C);
+      case 'booking':
+        return const Color(0xFFB26B2D);
+      case 'vendor':
+        return const Color(0xFF8B4D18);
+      case 'sponsor':
+        return const Color(0xFF6A4CC2);
+      case 'support':
+        return const Color(0xFFC25B3F);
+      default:
+        return const Color(0xFF145B52);
+    }
   }
 }
 
@@ -3114,24 +3147,23 @@ class _HeroCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(24),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            palette.accent,
-            palette.support,
-            Color.lerp(palette.support, Colors.black, 0.18)!,
+            Colors.white,
+            palette.canvasTop,
           ],
         ),
-        border: Border.all(color: const Color(0x1FFFFFFF)),
+        border: Border.all(color: palette.accent.withValues(alpha: 0.14)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x24163E3A),
-            blurRadius: 32,
-            offset: Offset(0, 18),
+            color: Color(0x0F101828),
+            blurRadius: 18,
+            offset: Offset(0, 8),
           ),
         ],
       ),
@@ -3141,105 +3173,102 @@ class _HeroCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 52,
-                height: 52,
-                padding: const EdgeInsets.all(10),
+                width: 42,
+                height: 42,
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0x14FFFFFF),
-                  borderRadius: BorderRadius.circular(18),
+                  color: palette.accent.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Image.asset(
                   'assets/branding/meloo-mark-v1.png',
                   fit: BoxFit.contain,
                 ),
               ),
-              const SizedBox(width: 12),
+              const Spacer(),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: const Color(0x1FFFFFFF),
+                  color: palette.accent.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  roleLabel == 'admin'
-                      ? 'MELOO PLATFORMS'
-                      : '${roleLabel.toUpperCase()} DESK',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  roleLabel.toUpperCase(),
+                  style: TextStyle(
+                    color: palette.accent,
+                    fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    letterSpacing: 0.8,
+                    letterSpacing: 0.35,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 14),
           Text(
             headline,
             style: const TextStyle(
-              fontSize: 26,
-              height: 1.04,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
+              fontSize: 22,
+              height: 1.06,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF111827),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Text(
             supporting,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+            maxLines: 3,
             style: const TextStyle(
-              color: Color(0xFFE8F0EE),
-              height: 1.45,
+              color: Color(0xFF6B7280),
+              height: 1.4,
+              fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 18),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: metrics
-                  .map(
-                    (metric) => Padding(
-                      padding: const EdgeInsets.only(right: 10),
-                      child: Container(
-                        constraints: const BoxConstraints(minWidth: 114),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(18),
-                          color: const Color(0x16FFFFFF),
-                          border: Border.all(color: const Color(0x28FFFFFF)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              metric.value,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              metric.label,
-                              style: const TextStyle(
-                                color: Color(0xFFE8F0EE),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
+          const SizedBox(height: 14),
+          Row(
+            children: metrics
+                .map(
+                  (metric) => Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        color: Colors.white,
+                        border: Border.all(
+                          color: palette.accent.withValues(alpha: 0.12),
                         ),
                       ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            metric.value,
+                            style: TextStyle(
+                              color: palette.accent,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            metric.label,
+                            style: const TextStyle(
+                              color: Color(0xFF6B7280),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  )
-                  .toList(growable: false),
-            ),
+                  ),
+                )
+                .toList(growable: false),
           ),
         ],
       ),
@@ -3335,23 +3364,16 @@ class _RoleLeadPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            palette.canvasTop,
-          ],
-        ),
+        borderRadius: BorderRadius.circular(22),
+        color: Colors.white,
         border: Border.all(color: palette.accent.withValues(alpha: 0.14)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x101A130C),
-            blurRadius: 22,
-            offset: Offset(0, 10),
+            color: Color(0x0A101828),
+            blurRadius: 16,
+            offset: Offset(0, 8),
           ),
         ],
       ),
@@ -3368,28 +3390,28 @@ class _RoleLeadPanel extends StatelessWidget {
                     Text(
                       title,
                       style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ],
                 ),
               ),
               Container(
-                width: 44,
-                height: 44,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: palette.accent.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(Icons.dashboard_customize_rounded,
-                    color: palette.accent),
+                    size: 18, color: palette.accent),
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
           _QuickActionStrip(actions: actions),
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
           _SignalStrip(signals: signals, compact: true),
         ],
       ),
@@ -3404,37 +3426,44 @@ class _QuickActionStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: actions
-          .map(
-            (action) => InkWell(
-              onTap: action.onTap,
-              borderRadius: BorderRadius.circular(18),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  color: Colors.white,
-                  border: Border.all(color: const Color(0xFFE1D7C8)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(action.icon, size: 18, color: const Color(0xFF145B52)),
-                    const SizedBox(width: 8),
-                    Text(
-                      action.label,
-                      style: const TextStyle(fontWeight: FontWeight.w800),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: actions
+            .map(
+              (action) => Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: InkWell(
+                  onTap: action.onTap,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      color: const Color(0xFFF8FAFB),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
                     ),
-                  ],
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(action.icon, size: 17, color: const Color(0xFF2F6B57)),
+                        const SizedBox(width: 8),
+                        Text(
+                          action.label,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
-          )
-          .toList(growable: false),
+            )
+            .toList(growable: false),
+      ),
     );
   }
 }
@@ -3458,18 +3487,18 @@ class _SignalStrip extends StatelessWidget {
               (signal) => Padding(
                 padding: EdgeInsets.only(right: compact ? 10 : 12),
                 child: Container(
-                  width: compact ? 188 : 212,
-                  padding: EdgeInsets.all(compact ? 16 : 18),
+                  width: compact ? 154 : 180,
+                  padding: EdgeInsets.all(compact ? 14 : 16),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(compact ? 20 : 24),
+                    borderRadius: BorderRadius.circular(compact ? 18 : 20),
                     color: Colors.white,
                     border:
                         Border.all(color: signal.color.withValues(alpha: 0.18)),
                     boxShadow: const [
                       BoxShadow(
-                        color: Color(0x0D1A130C),
-                        blurRadius: 18,
-                        offset: Offset(0, 8),
+                        color: Color(0x08101828),
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
                       ),
                     ],
                   ),
@@ -3477,28 +3506,29 @@ class _SignalStrip extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        width: compact ? 38 : 42,
-                        height: compact ? 38 : 42,
+                        width: compact ? 34 : 38,
+                        height: compact ? 34 : 38,
                         decoration: BoxDecoration(
                           color: signal.color.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(signal.icon, color: signal.color),
+                        child: Icon(signal.icon, color: signal.color, size: 18),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 10),
                       Text(
                         signal.value,
                         style: TextStyle(
-                          fontSize: compact ? 24 : 28,
+                          fontSize: compact ? 20 : 22,
                           fontWeight: FontWeight.w900,
                           height: 1,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       Text(
                         signal.label,
                         style: TextStyle(
                           color: signal.color,
+                          fontSize: 12,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -3902,23 +3932,16 @@ class _SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            Color(0xFFF8F5EF),
-          ],
-        ),
-        border: Border.all(color: accent.withValues(alpha: 0.14)),
+        borderRadius: BorderRadius.circular(22),
+        color: Colors.white,
+        border: Border.all(color: accent.withValues(alpha: 0.12)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x101A130C),
-            blurRadius: 22,
-            offset: Offset(0, 10),
+            color: Color(0x0A101828),
+            blurRadius: 14,
+            offset: Offset(0, 6),
           ),
         ],
       ),
@@ -3928,27 +3951,27 @@ class _SectionCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 38,
-                height: 38,
+                width: 34,
+                height: 34,
                 decoration: BoxDecoration(
                   color: accent.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: accent, size: 20),
+                child: Icon(icon, color: accent, size: 18),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           child,
         ],
       ),
@@ -3971,26 +3994,19 @@ class _EventCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.white,
-              Color(0xFFFAF7F1),
-            ],
-          ),
-          border: Border.all(color: accent.withValues(alpha: 0.14)),
+          borderRadius: BorderRadius.circular(16),
+          color: const Color(0xFFFCFCFD),
+          border: Border.all(color: accent.withValues(alpha: 0.12)),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x0D1A130C),
-              blurRadius: 18,
-              offset: Offset(0, 8),
+              color: Color(0x06101828),
+              blurRadius: 10,
+              offset: Offset(0, 4),
             ),
           ],
         ),
@@ -3998,21 +4014,21 @@ class _EventCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 52,
-              height: 4,
+              width: 40,
+              height: 3,
               decoration: BoxDecoration(
                 color: accent,
                 borderRadius: BorderRadius.circular(999),
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: Text(
                     event.title,
                     style: const TextStyle(
-                      fontSize: 18,
+                      fontSize: 16,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -4020,7 +4036,7 @@ class _EventCard extends StatelessWidget {
                 _StatusChip(label: event.status, color: accent),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -4713,9 +4729,12 @@ class _ConversationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final counterpart = conversation.counterpartFor(currentUserId);
     final title = counterpart?.displayName ?? 'Conversation';
-    final subtitle = conversation.lastMessage?.body ?? 'No messages yet';
-    final activityTime = conversation.lastMessage?.createdAt ?? conversation.createdAt;
-    final initial = title.trim().isEmpty ? 'M' : title.trim().characters.first.toUpperCase();
+    final subtitle = conversation.lastMessage?.previewText ?? 'No messages yet';
+    final activityTime =
+        conversation.lastMessage?.createdAt ?? conversation.createdAt;
+    final initial =
+        title.trim().isEmpty ? 'M' : title.trim().characters.first.toUpperCase();
+    final lastMessage = conversation.lastMessage;
 
     return InkWell(
       onTap: onTap,
@@ -4733,7 +4752,11 @@ class _ConversationCard extends StatelessWidget {
               Color(0xFFF8F5EF),
             ],
           ),
-          border: Border.all(color: const Color(0x1F173B63)),
+          border: Border.all(
+            color: lastMessage?.isAssistant == true
+                ? const Color(0x1F4F5BD5)
+                : const Color(0x1F173B63),
+          ),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -4741,8 +4764,20 @@ class _ConversationCard extends StatelessWidget {
             Container(
               width: 46,
               height: 46,
-              decoration: const BoxDecoration(
-                color: Color(0xFF173B63),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: lastMessage?.isAssistant == true
+                      ? const [
+                          Color(0xFF4F5BD5),
+                          Color(0xFF7A87FF),
+                        ]
+                      : const [
+                          Color(0xFF173B63),
+                          Color(0xFF145B52),
+                        ],
+                ),
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
@@ -4788,6 +4823,11 @@ class _ConversationCard extends StatelessWidget {
                         label: counterpart?.role.name ?? conversation.type,
                         color: const Color(0xFF0E6B5C),
                       ),
+                      if (lastMessage?.isAssistant == true)
+                        const _StatusChip(
+                          label: 'AI reply',
+                          color: Color(0xFF4F5BD5),
+                        ),
                       _MetaLabel(label: _formatCompactTimestamp(activityTime)),
                     ],
                   ),
@@ -4805,6 +4845,19 @@ class _ConversationCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+extension on _RoleHomeScreenState {
+  Future<T?> _pushWorkflowPage<T>(WidgetBuilder builder) {
+    return Navigator.of(context).push<T>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => WorkflowPageScaffold(
+          child: builder(context),
         ),
       ),
     );
@@ -5069,17 +5122,28 @@ class _ChatConversationSheet extends StatefulWidget {
     required this.title,
     required this.messages,
     required this.currentUserId,
+    required this.currentUserRole,
+    required this.aiAssistEnabled,
     required this.isLoading,
     required this.isSending,
+    required this.isDrafting,
     required this.onSend,
+    required this.onGenerateDraft,
   });
 
   final String title;
   final List<ChatMessageModel> messages;
   final String currentUserId;
+  final UserRole currentUserRole;
+  final bool aiAssistEnabled;
   final bool isLoading;
   final bool isSending;
+  final bool isDrafting;
   final Future<void> Function(String body) onSend;
+  final Future<AiAssistantDraftModel> Function({
+    required AiAssistantDraftIntent intent,
+    String? prompt,
+  }) onGenerateDraft;
 
   @override
   State<_ChatConversationSheet> createState() => _ChatConversationSheetState();
@@ -5131,6 +5195,33 @@ class _ChatConversationSheetState extends State<_ChatConversationSheet> {
     }
   }
 
+  Future<void> _requestDraft(AiAssistantDraftIntent intent) async {
+    try {
+      final draft = await widget.onGenerateDraft(
+        intent: intent,
+        prompt: _messageController.text.trim(),
+      );
+      if (!mounted) {
+        return;
+      }
+      _messageController
+        ..text = draft.content
+        ..selection = TextSelection.fromPosition(
+          TextPosition(offset: draft.content.length),
+        );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${draft.title} ready')),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('AI draft failed')),
+      );
+    }
+  }
+
   void _scrollToBottom() {
     if (!_scrollController.hasClients) {
       return;
@@ -5144,6 +5235,14 @@ class _ChatConversationSheetState extends State<_ChatConversationSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final availableDrafts = <AiAssistantDraftIntent>[
+      switch (widget.currentUserRole) {
+        UserRole.vendor => AiAssistantDraftIntent.vendorProposal,
+        UserRole.sponsor => AiAssistantDraftIntent.sponsorProposal,
+        _ => AiAssistantDraftIntent.chatReply,
+      },
+    ];
+
     return Padding(
       padding: EdgeInsets.fromLTRB(
         20,
@@ -5173,21 +5272,52 @@ class _ChatConversationSheetState extends State<_ChatConversationSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    widget.title,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Direct thread',
-                    style: TextStyle(
-                      color: Color(0xFFE8F0EE),
-                      fontWeight: FontWeight.w700,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.18),
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.forum_rounded,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.title,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              widget.aiAssistEnabled
+                                  ? 'Direct thread with AI-assisted replies enabled'
+                                  : 'Direct thread',
+                              style: const TextStyle(
+                                color: Color(0xFFE8F0EE),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -5210,78 +5340,148 @@ class _ChatConversationSheetState extends State<_ChatConversationSheet> {
                             ),
                           ),
                         )
-                      : ListView.separated(
-                          controller: _scrollController,
-                          itemCount: widget.messages.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final message = widget.messages[index];
-                            final isMine =
-                                message.sender.userId == widget.currentUserId;
-                            return Align(
-                              alignment: isMine
-                                  ? Alignment.centerRight
-                                  : Alignment.centerLeft,
-                              child: Container(
-                                constraints: BoxConstraints(
-                                  maxWidth:
-                                      MediaQuery.of(context).size.width * 0.72,
-                                ),
-                                padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(
-                                  color: message.isSystem
-                                      ? const Color(0xFFF4EFE3)
+                      : Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8F3EB),
+                            borderRadius: BorderRadius.circular(26),
+                          ),
+                          child: ListView.separated(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.all(16),
+                            itemCount: widget.messages.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final message = widget.messages[index];
+                              final isMine =
+                                  message.sender.userId == widget.currentUserId;
+                              final bubbleColor = message.isSystem
+                                  ? const Color(0xFFF4EFE3)
+                                  : message.isAssistant
+                                      ? const Color(0xFFF1F3FF)
                                       : isMine
                                           ? const Color(0xFF173B63)
-                                          : Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: isMine
-                                        ? const Color(0x33173B63)
-                                        : const Color(0x1F173B63),
+                                          : Colors.white;
+                              final textColor = isMine
+                                  ? Colors.white
+                                  : const Color(0xFF5F645F);
+
+                              return Align(
+                                alignment: isMine
+                                    ? Alignment.centerRight
+                                    : Alignment.centerLeft,
+                                child: Container(
+                                  constraints: BoxConstraints(
+                                    maxWidth:
+                                        MediaQuery.of(context).size.width * 0.76,
                                   ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if (!isMine) ...[
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: bubbleColor,
+                                    borderRadius: BorderRadius.circular(18),
+                                    border: Border.all(
+                                      color: message.isAssistant
+                                          ? const Color(0x334F5BD5)
+                                          : isMine
+                                              ? const Color(0x33173B63)
+                                              : const Color(0x1F173B63),
+                                    ),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color(0x120F2030),
+                                        blurRadius: 10,
+                                        offset: Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      if (!isMine || message.isAssistant) ...[
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                message.isAssistant
+                                                    ? '${message.sender.displayName} AI'
+                                                    : message.sender.displayName,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w700,
+                                                  color: message.isAssistant
+                                                      ? const Color(0xFF4F5BD5)
+                                                      : null,
+                                                ),
+                                              ),
+                                            ),
+                                            if (message.isAssistant)
+                                              const _StatusChip(
+                                                label: 'AI',
+                                                color: Color(0xFF4F5BD5),
+                                              ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 6),
+                                      ],
                                       Text(
-                                        message.sender.displayName,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w700,
+                                        message.body,
+                                        style: TextStyle(
+                                          color: textColor,
+                                          height: 1.5,
                                         ),
                                       ),
-                                      const SizedBox(height: 6),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        _formatCompactTimestamp(message.createdAt),
+                                        style: TextStyle(
+                                          color: isMine
+                                              ? const Color(0xCCE8F0EE)
+                                              : const Color(0xFF7A7369),
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 12,
+                                        ),
+                                      ),
                                     ],
-                                    Text(
-                                      message.body,
-                                      style: TextStyle(
-                                        color: isMine
-                                            ? Colors.white
-                                            : const Color(0xFF5F645F),
-                                        height: 1.5,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      _formatCompactTimestamp(message.createdAt),
-                                      style: TextStyle(
-                                        color: isMine
-                                            ? const Color(0xCCE8F0EE)
-                                            : const Color(0xFF7A7369),
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
+                              );
+                            },
+                          ),
                         ),
             ),
             const SizedBox(height: 16),
+            if (widget.aiAssistEnabled) ...[
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: availableDrafts
+                      .map(
+                        (intent) => Padding(
+                          padding: const EdgeInsets.only(right: 10),
+                          child: OutlinedButton.icon(
+                            onPressed: widget.isDrafting
+                                ? null
+                                : () => _requestDraft(intent),
+                            icon: Icon(
+                              intent == AiAssistantDraftIntent.chatReply
+                                  ? Icons.auto_awesome_rounded
+                                  : Icons.description_rounded,
+                            ),
+                            label: Text(
+                              widget.isDrafting
+                                  ? 'Drafting...'
+                                  : intent == AiAssistantDraftIntent.chatReply
+                                      ? 'AI reply draft'
+                                      : 'AI proposal draft',
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -5297,7 +5497,7 @@ class _ChatConversationSheetState extends State<_ChatConversationSheet> {
                       maxLines: 4,
                       textInputAction: TextInputAction.newline,
                       decoration: const InputDecoration(
-                        hintText: 'Write a clear next step',
+                        hintText: 'Write a clear next step or use AI to draft one',
                         border: OutlineInputBorder(),
                       ),
                     ),

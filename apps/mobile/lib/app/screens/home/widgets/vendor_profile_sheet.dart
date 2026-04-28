@@ -3,6 +3,7 @@ import 'package:latlong2/latlong.dart';
 import '../../../vendors/vendor_models.dart';
 import '../../../uploads/upload_models.dart';
 import '../../../widgets/location_map_field.dart';
+import '../../../widgets/modal_form_scaffold.dart';
 import '../../../widgets/upload_field_card.dart';
 
 class VendorProfileSheet extends StatefulWidget {
@@ -108,122 +109,117 @@ class _VendorProfileSheetState extends State<VendorProfileSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        20,
-        20,
-        MediaQuery.of(context).viewInsets.bottom + 20,
-      ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                widget.initialProfile == null
-                    ? 'Create vendor profile'
-                    : 'Edit vendor profile',
-                style:
-                    const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'This profile powers public discovery for organizers looking for vendor support.',
-                style: TextStyle(color: Color(0xFF5F645F), height: 1.5),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                'Set your location on the map so Meloo can match you to organizer demand by real distance.',
-                style: TextStyle(color: Color(0xFF7A7369), height: 1.5),
-              ),
-              const SizedBox(height: 20),
-              _field(_businessNameController, 'Business name'),
-              const SizedBox(height: 16),
-              _field(_categoryController, 'Category'),
-              const SizedBox(height: 16),
-              _field(_serviceAreaController, 'Service area'),
-              const SizedBox(height: 16),
-              LocationMapField(
-                label: 'Vendor base location',
-                helper:
-                    'Tap the map to set your main operating base. The travel radius slider controls how far you are willing to work.',
-                radiusLabel: 'Travel radius',
-                initialLatitude: _latitude,
-                initialLongitude: _longitude,
-                initialRadiusKm: _travelRadiusKm,
-                defaultCenter: const LatLng(27.7172, 85.3240),
-                onChanged: (selection) {
-                  _latitude = selection.latitude;
-                  _longitude = selection.longitude;
-                  _travelRadiusKm = selection.radiusKm;
-                },
-              ),
-              const SizedBox(height: 16),
-              UploadFieldCard(
-                label: 'Portfolio image',
-                accessToken: widget.accessToken,
-                controller: _portfolioImageUrlController,
-                kind: UploadAssetKind.image,
-                helper:
-                    'Show organizers the strongest visual proof of your work.',
-              ),
-              const SizedBox(height: 16),
-              UploadFieldCard(
-                label: 'Verification document',
-                accessToken: widget.accessToken,
-                controller: _verificationDocumentUrlController,
-                kind: UploadAssetKind.document,
-                helper:
-                    'Upload a registration, license, deck, or capability document for review.',
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => value == null || value.trim().length < 20
-                    ? 'Use at least 20 characters'
-                    : null,
-              ),
-              const SizedBox(height: 8),
-              SwitchListTile(
-                value: _allowDirectBooking,
-                onChanged: widget.isSubmitting
-                    ? null
-                    : (value) => setState(() => _allowDirectBooking = value),
-                title: const Text('Allow direct booking'),
-                contentPadding: EdgeInsets.zero,
-              ),
-              SwitchListTile(
-                value: _allowRequestBooking,
-                onChanged: widget.isSubmitting
-                    ? null
-                    : (value) => setState(() => _allowRequestBooking = value),
-                title: const Text('Allow request booking'),
-                contentPadding: EdgeInsets.zero,
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: widget.isSubmitting ? null : _submit,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: Text(
-                      widget.isSubmitting ? 'Saving profile...' : 'Save profile',
-                    ),
-                  ),
-                ),
-              ),
-            ],
+    return Form(
+      key: _formKey,
+      child: ModalFormScaffold(
+        title: widget.initialProfile == null
+            ? 'Create vendor profile'
+            : 'Edit vendor profile',
+        subtitle:
+            'Build a clean storefront for organizers with service coverage, proof of work, and booking preferences.',
+        icon: Icons.storefront_rounded,
+        actionLabel: 'Save profile',
+        submittingLabel: 'Saving profile...',
+        isSubmitting: widget.isSubmitting,
+        onSubmit: _submit,
+        children: [
+          const ModalFormInfoCard(
+            title: 'Distance-based matching',
+            message:
+                'Set your base location and travel radius so organizer leads stay relevant instead of broad and noisy.',
+            icon: Icons.route_rounded,
           ),
-        ),
+          ModalFormSection(
+            title: 'Business identity',
+            subtitle: 'What organizers see first when browsing vendors.',
+            icon: Icons.badge_rounded,
+            child: Column(
+              children: [
+                _field(_businessNameController, 'Business name'),
+                const SizedBox(height: 14),
+                _field(_categoryController, 'Category'),
+                const SizedBox(height: 14),
+                _field(_serviceAreaController, 'Service area'),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _descriptionController,
+                  maxLines: 4,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                  validator: (value) => value == null || value.trim().length < 20
+                      ? 'Use at least 20 characters'
+                      : null,
+                ),
+              ],
+            ),
+          ),
+          ModalFormSection(
+            title: 'Coverage and media',
+            subtitle: 'Location, portfolio, and verification for trust.',
+            icon: Icons.place_rounded,
+            child: Column(
+              children: [
+                LocationMapField(
+                  label: 'Vendor base location',
+                  helper:
+                      'Tap the map to set your main operating base. The travel radius slider controls how far you are willing to work.',
+                  radiusLabel: 'Travel radius',
+                  initialLatitude: _latitude,
+                  initialLongitude: _longitude,
+                  initialRadiusKm: _travelRadiusKm,
+                  defaultCenter: const LatLng(27.7172, 85.3240),
+                  onChanged: (selection) {
+                    _latitude = selection.latitude;
+                    _longitude = selection.longitude;
+                    _travelRadiusKm = selection.radiusKm;
+                  },
+                ),
+                const SizedBox(height: 14),
+                UploadFieldCard(
+                  label: 'Portfolio image',
+                  accessToken: widget.accessToken,
+                  controller: _portfolioImageUrlController,
+                  kind: UploadAssetKind.image,
+                  helper:
+                      'Show organizers the strongest visual proof of your work.',
+                ),
+                const SizedBox(height: 14),
+                UploadFieldCard(
+                  label: 'Verification document',
+                  accessToken: widget.accessToken,
+                  controller: _verificationDocumentUrlController,
+                  kind: UploadAssetKind.document,
+                  helper:
+                      'Upload a registration, license, deck, or capability document for review.',
+                ),
+              ],
+            ),
+          ),
+          ModalFormSection(
+            title: 'Booking preferences',
+            subtitle: 'Control how organizers start working with you.',
+            icon: Icons.tune_rounded,
+            child: Column(
+              children: [
+                ModalFormToggleTile(
+                  title: 'Allow direct booking',
+                  subtitle: 'Let qualified organizers confirm immediately.',
+                  value: _allowDirectBooking,
+                  onChanged: widget.isSubmitting
+                      ? null
+                      : (value) => setState(() => _allowDirectBooking = value),
+                ),
+                ModalFormToggleTile(
+                  title: 'Allow request booking',
+                  subtitle: 'Keep an approval step before work is confirmed.',
+                  value: _allowRequestBooking,
+                  onChanged: widget.isSubmitting
+                      ? null
+                      : (value) => setState(() => _allowRequestBooking = value),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -231,10 +227,7 @@ class _VendorProfileSheetState extends State<VendorProfileSheet> {
   Widget _field(TextEditingController controller, String label) {
     return TextFormField(
       controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
+      decoration: InputDecoration(labelText: label),
       validator: (value) =>
           value == null || value.trim().isEmpty ? '$label is required' : null,
     );

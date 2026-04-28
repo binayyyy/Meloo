@@ -7,6 +7,7 @@ import '../../events/event_models.dart';
 import '../../session/auth_api_client.dart';
 import '../../session/auth_models.dart';
 import '../../session/auth_scope.dart';
+import '../../widgets/workflow_page_scaffold.dart';
 import 'widgets/create_ticket_type_sheet.dart';
 import 'widgets/register_ticket_sheet.dart';
 
@@ -66,48 +67,42 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
   Future<void> _openCreateTicketSheet(AuthSession session) async {
     final messenger = ScaffoldMessenger.of(context);
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) {
-        return AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) {
-            return CreateTicketTypeSheet(
-              isSubmitting: _controller.isSubmitting,
-              onSubmit: (request) async {
-                try {
-                  await _controller.createTicketType(
-                    session: session,
-                    eventId: widget.args.eventId,
-                    request: request,
+    await _pushWorkflowPage((context) {
+      return AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          return CreateTicketTypeSheet(
+            isSubmitting: _controller.isSubmitting,
+            onSubmit: (request) async {
+              try {
+                await _controller.createTicketType(
+                  session: session,
+                  eventId: widget.args.eventId,
+                  request: request,
+                );
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(_controller.successMessage ?? 'Ticket created'),
+                    ),
                   );
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content:
-                            Text(_controller.successMessage ?? 'Ticket created'),
-                      ),
-                    );
-                  }
-                } on ApiException {
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _controller.errorMessage ?? 'Ticket creation failed',
-                        ),
-                      ),
-                    );
-                  }
                 }
-              },
-            );
-          },
-        );
-      },
-    );
+              } on ApiException {
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _controller.errorMessage ?? 'Ticket creation failed',
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+          );
+        },
+      );
+    });
   }
 
   Future<void> _openRegistrationSheet(
@@ -115,87 +110,82 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     TicketTypeModel ticketType,
   ) async {
     final messenger = ScaffoldMessenger.of(context);
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) {
-        return AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) {
-            return RegisterTicketSheet(
-              ticketType: ticketType,
-              isSubmitting: _controller.isSubmitting,
-              onSubmit: (quantity) async {
-                try {
-                  if (ticketType.isFree) {
-                    final registration = await _controller.register(
-                      session: session,
-                      eventId: widget.args.eventId,
-                      ticketTypeId: ticketType.id,
-                      quantity: quantity,
-                    );
-                    if (mounted) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            _controller.successMessage ??
-                                'Registered for ${registration.event.title}',
-                          ),
-                        ),
-                      );
-                    }
-                    return;
-                  }
-
-                  final checkout = await _controller.purchasePaidTicket(
+    await _pushWorkflowPage((context) {
+      return AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          return RegisterTicketSheet(
+            ticketType: ticketType,
+            isSubmitting: _controller.isSubmitting,
+            onSubmit: (quantity) async {
+              try {
+                if (ticketType.isFree) {
+                  final registration = await _controller.register(
                     session: session,
                     eventId: widget.args.eventId,
                     ticketTypeId: ticketType.id,
                     quantity: quantity,
-                    returnUrl: _buildCheckoutReturnUrl(),
                   );
                   if (mounted) {
-                    if (checkout.checkoutUrl != null &&
-                        checkout.checkoutUrl!.isNotEmpty) {
-                      final launched = await launchUrlString(
-                        checkout.checkoutUrl!,
-                        mode: LaunchMode.platformDefault,
-                      );
-                      if (!launched && mounted) {
-                        messenger.showSnackBar(
-                          const SnackBar(
-                            content: Text('Unable to open Stripe checkout'),
-                          ),
-                        );
-                      }
-                    }
                     messenger.showSnackBar(
                       SnackBar(
                         content: Text(
                           _controller.successMessage ??
-                              'Stripe checkout started for ${checkout.registration.event.title}',
+                              'Registered for ${registration.event.title}',
                         ),
                       ),
                     );
                   }
-                } on ApiException {
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _controller.errorMessage ?? 'Registration failed',
-                        ),
-                      ),
-                    );
-                  }
+                  return;
                 }
-              },
-            );
-          },
-        );
-      },
-    );
+
+                final checkout = await _controller.purchasePaidTicket(
+                  session: session,
+                  eventId: widget.args.eventId,
+                  ticketTypeId: ticketType.id,
+                  quantity: quantity,
+                  returnUrl: _buildCheckoutReturnUrl(),
+                );
+                if (mounted) {
+                  if (checkout.checkoutUrl != null &&
+                      checkout.checkoutUrl!.isNotEmpty) {
+                    final launched = await launchUrlString(
+                      checkout.checkoutUrl!,
+                      mode: LaunchMode.platformDefault,
+                    );
+                    if (!launched && mounted) {
+                      messenger.showSnackBar(
+                        const SnackBar(
+                          content: Text('Unable to open Stripe checkout'),
+                        ),
+                      );
+                    }
+                  }
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _controller.successMessage ??
+                            'Stripe checkout started for ${checkout.registration.event.title}',
+                      ),
+                    ),
+                  );
+                }
+              } on ApiException {
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _controller.errorMessage ?? 'Registration failed',
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+          );
+        },
+      );
+    });
   }
 
   String _buildCheckoutReturnUrl() {
@@ -286,9 +276,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       animation: _controller,
       builder: (context, _) {
         return Scaffold(
-          backgroundColor: const Color(0xFFF3EBDE),
+          backgroundColor: const Color(0xFFF3F5F7),
           appBar: AppBar(
-            title: const Text('Event detail'),
+            title: Text(widget.args.manageMode ? 'Manage event' : 'Event'),
             actions: widget.args.manageMode
                 ? null
                 : [
@@ -334,10 +324,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   ],
           ),
           floatingActionButton: widget.args.manageMode
-              ? FloatingActionButton.extended(
+              ? FloatingActionButton.small(
                   onPressed: () => _openCreateTicketSheet(session),
-                  icon: const Icon(Icons.sell_outlined),
-                  label: const Text('Add ticket'),
+                  tooltip: 'Add ticket',
+                  child: const Icon(Icons.sell_outlined),
                 )
               : null,
           body: DecoratedBox(
@@ -346,8 +336,8 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xFFF9F4EC),
-                  Color(0xFFF1E8DB),
+                  Color(0xFFF7F9FA),
+                  Color(0xFFF0F4F7),
                 ],
               ),
             ),
@@ -382,7 +372,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               manageMode: widget.args.manageMode,
             ),
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 112),
               children: [
                 _DetailHero(
                   event: event,
@@ -505,6 +495,19 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   }
 }
 
+extension on _EventDetailScreenState {
+  Future<T?> _pushWorkflowPage<T>(WidgetBuilder builder) {
+    return Navigator.of(context).push<T>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => WorkflowPageScaffold(
+          child: builder(context),
+        ),
+      ),
+    );
+  }
+}
+
 class _DetailHero extends StatelessWidget {
   const _DetailHero({
     required this.event,
@@ -520,17 +523,17 @@ class _DetailHero extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x24163E3A),
-            blurRadius: 30,
-            offset: Offset(0, 14),
+            color: Color(0x12101828),
+            blurRadius: 22,
+            offset: Offset(0, 10),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(24),
         child: Stack(
           children: [
             Positioned.fill(
@@ -546,9 +549,9 @@ class _DetailHero extends StatelessWidget {
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
-                                  Color(0xFF132A4A),
-                                  Color(0xFF1A4C74),
-                                  Color(0xFF8A6A37),
+                                  Color(0xFF2E4A62),
+                                  Color(0xFF4D6478),
+                                  Color(0xFF6D7D8B),
                                 ],
                               ),
                             ),
@@ -563,9 +566,9 @@ class _DetailHero extends StatelessWidget {
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             colors: [
-                              Color(0xFF132A4A),
-                              Color(0xFF1A4C74),
-                              Color(0xFF8A6A37),
+                              Color(0xFF2E4A62),
+                              Color(0xFF4D6478),
+                              Color(0xFF6D7D8B),
                             ],
                           ),
                         ),
@@ -579,62 +582,68 @@ class _DetailHero extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      const Color(0xFF10223F).withValues(alpha: 0.24),
-                      const Color(0xFF10223F).withValues(alpha: 0.9),
+                      const Color(0xFF192734).withValues(alpha: 0.18),
+                      const Color(0xFF192734).withValues(alpha: 0.84),
                     ],
                   ),
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0x1AFFFFFF),
+                      color: const Color(0x14FFFFFF),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
                       event.category.name.toUpperCase(),
                       style: const TextStyle(
                         color: Colors.white,
+                        fontSize: 11,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: 0.7,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
                   Text(
                     event.title,
                     style: const TextStyle(
-                      fontSize: 30,
-                      height: 1.02,
-                      fontWeight: FontWeight.w900,
+                      fontSize: 26,
+                      height: 1.06,
+                      fontWeight: FontWeight.w800,
                       color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   Text(
                     '${event.venue}, ${event.city}',
                     style: const TextStyle(
                       color: Color(0xFFE6F0EE),
+                      fontSize: 13,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 12),
                   Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
-                      _MetaBadge(label: _formatWindow(event)),
-                      _MetaBadge(label: '${event.status} / ${event.visibility}'),
+                      _MetaBadge(label: _formatWindow(event), inverse: true),
+                      _MetaBadge(
+                        label: '${event.status} / ${event.visibility}',
+                        inverse: true,
+                      ),
                       _MetaBadge(
                         label: manageMode
                             ? '$ticketCount ticket lane${ticketCount == 1 ? '' : 's'}'
                             : 'Stripe-ready checkout',
+                        inverse: true,
                       ),
                     ],
                   ),
@@ -785,23 +794,16 @@ class _Panel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFFCF8),
-            Color(0xFFF4ECE0),
-          ],
-        ),
-        border: Border.all(color: const Color(0xFFD8D1C2)),
+        borderRadius: BorderRadius.circular(20),
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFDCE3E8)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x101A130C),
-            blurRadius: 20,
-            offset: Offset(0, 8),
+            color: Color(0x0A101828),
+            blurRadius: 14,
+            offset: Offset(0, 6),
           ),
         ],
       ),
@@ -811,19 +813,19 @@ class _Panel extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 38,
-                height: 38,
+                width: 34,
+                height: 34,
                 decoration: BoxDecoration(
                   color: accent.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: accent, size: 20),
+                child: Icon(icon, color: accent, size: 18),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                 ),
               ),
             ],
@@ -863,30 +865,31 @@ class _InfoRail extends StatelessWidget {
               (item) => Padding(
                 padding: const EdgeInsets.only(right: 12),
                 child: Container(
-                  width: 206,
-                  padding: const EdgeInsets.all(18),
+                  width: 172,
+                  padding: const EdgeInsets.all(15),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(color: const Color(0xFFE0D9CB)),
+                    color: const Color(0xFFFBFCFD),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFDCE3E8)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        width: 40,
-                        height: 40,
+                        width: 34,
+                        height: 34,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE8F3F0),
-                          borderRadius: BorderRadius.circular(14),
+                          color: const Color(0xFFEAF0F5),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(item.icon, color: const Color(0xFF145B52)),
+                        child: Icon(item.icon, size: 18, color: const Color(0xFF2E4A62)),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 12),
                       Text(
                         item.label,
                         style: const TextStyle(
-                          color: Color(0xFF145B52),
+                          color: Color(0xFF2E4A62),
+                          fontSize: 12,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -894,7 +897,7 @@ class _InfoRail extends StatelessWidget {
                       Text(
                         item.value,
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 15,
                           fontWeight: FontWeight.w800,
                           height: 1.2,
                         ),
@@ -971,7 +974,8 @@ class _ExpectationBoard extends StatelessWidget {
                       point,
                       style: const TextStyle(
                         color: Color(0xFF5F645F),
-                        height: 1.55,
+                        fontSize: 13,
+                        height: 1.5,
                       ),
                     ),
                   ),
@@ -1005,27 +1009,20 @@ class _TicketCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            Color(0xFFF8F2E8),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE0D9CB)),
+        color: const Color(0xFFFBFCFD),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFDCE3E8)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 48,
-            height: 4,
+            width: 36,
+            height: 3,
             decoration: BoxDecoration(
               color: ticket.isFree
-                  ? const Color(0xFF145B52)
-                  : const Color(0xFFBA7B2F),
+                  ? const Color(0xFF2F6B57)
+                  : const Color(0xFF7A6A52),
               borderRadius: BorderRadius.circular(999),
             ),
           ),
@@ -1036,7 +1033,7 @@ class _TicketCard extends StatelessWidget {
                 child: Text(
                   ticket.name,
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -1045,8 +1042,8 @@ class _TicketCard extends StatelessWidget {
                 ticket.isFree ? 'Free' : ticket.price,
                 style: TextStyle(
                   color: ticket.isFree
-                      ? const Color(0xFF0E6B5C)
-                      : const Color(0xFF9A5F1D),
+                      ? const Color(0xFF2F6B57)
+                      : const Color(0xFF7A6A52),
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -1059,6 +1056,7 @@ class _TicketCard extends StatelessWidget {
                 : 'Stripe checkout in test mode for paid access',
             style: const TextStyle(
               color: Color(0xFF5F645F),
+              fontSize: 13,
               height: 1.45,
             ),
           ),
@@ -1105,19 +1103,32 @@ class _TicketCard extends StatelessWidget {
 }
 
 class _MetaBadge extends StatelessWidget {
-  const _MetaBadge({required this.label});
+  const _MetaBadge({
+    required this.label,
+    this.inverse = false,
+  });
 
   final String label;
+  final bool inverse;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: const Color(0xFFF4F0E8),
+        color: inverse
+            ? Colors.white.withValues(alpha: 0.14)
+            : const Color(0xFFF1F4F7),
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(label),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: inverse ? Colors.white : const Color(0xFF34424F),
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../events/event_models.dart';
+import '../../../widgets/modal_form_scaffold.dart';
 
 class PlanningAssistantRequest {
   const PlanningAssistantRequest({
@@ -54,88 +55,79 @@ class _PlanningAssistantSheetState extends State<PlanningAssistantSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 8, 20, bottomInset + 24),
-      child: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Planning assistant',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Generate a practical event-planning brief with vendor coverage, timeline checkpoints, and budget guidance.',
-                style: TextStyle(color: Color(0xFF5F645F), height: 1.5),
-              ),
-              const SizedBox(height: 20),
-              DropdownButtonFormField<String?>(
-                initialValue: _selectedEventId,
-                decoration: const InputDecoration(
-                  labelText: 'Event',
-                  border: OutlineInputBorder(),
-                ),
-                items: [
-                  const DropdownMenuItem<String?>(
-                    value: null,
-                    child: Text('No linked event'),
-                  ),
-                  ...widget.events.map(
-                    (event) => DropdownMenuItem<String?>(
-                      value: event.id,
-                      child: Text(event.title),
-                    ),
-                  ),
-                ],
-                onChanged: widget.isSubmitting
-                    ? null
-                    : (value) => setState(() => _selectedEventId = value),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _attendeesController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Expected attendees',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _budgetController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  labelText: 'Working budget (USD)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _goalController,
-                minLines: 2,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Planning goal',
-                  hintText: 'Example: deliver smoother check-in and secure two sponsor leads',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: widget.isSubmitting ? null : _submit,
-                  child: Text(widget.isSubmitting ? 'Generating...' : 'Generate brief'),
-                ),
-              ),
-            ],
+    return Form(
+      key: _formKey,
+      child: ModalFormScaffold(
+        title: 'Planning assistant',
+        subtitle:
+            'Generate a practical brief with vendor coverage, budget guidance, and timeline checkpoints.',
+        icon: Icons.auto_awesome_rounded,
+        actionLabel: 'Generate brief',
+        submittingLabel: 'Generating...',
+        isSubmitting: widget.isSubmitting,
+        onSubmit: _submit,
+        children: [
+          const ModalFormInfoCard(
+            title: 'AI planning input',
+            message:
+                'The better the event context, budget, and goal, the stronger the generated plan will be.',
+            icon: Icons.psychology_alt_rounded,
           ),
-        ),
+          ModalFormSection(
+            title: 'Planning context',
+            subtitle: 'Optional details help the assistant tailor the brief.',
+            icon: Icons.fact_check_rounded,
+            child: Column(
+              children: [
+                DropdownButtonFormField<String?>(
+                  initialValue: _selectedEventId,
+                  decoration: const InputDecoration(labelText: 'Event'),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('No linked event'),
+                    ),
+                    ...widget.events.map(
+                      (event) => DropdownMenuItem<String?>(
+                        value: event.id,
+                        child: Text(event.title),
+                      ),
+                    ),
+                  ],
+                  onChanged: widget.isSubmitting
+                      ? null
+                      : (value) => setState(() => _selectedEventId = value),
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _attendeesController,
+                  keyboardType: TextInputType.number,
+                  decoration:
+                      const InputDecoration(labelText: 'Expected attendees'),
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _budgetController,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration:
+                      const InputDecoration(labelText: 'Working budget (USD)'),
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _goalController,
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Planning goal',
+                    hintText:
+                        'Example: smoother check-in and two sponsor leads',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

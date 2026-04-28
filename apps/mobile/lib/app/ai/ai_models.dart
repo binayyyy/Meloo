@@ -3,6 +3,43 @@ import '../core/json_value.dart';
 import '../sponsors/sponsor_models.dart';
 import '../vendors/vendor_models.dart';
 
+enum AiAssistantDraftIntent {
+  chatReply('chat_reply'),
+  organizerPlan('organizer_plan'),
+  vendorProposal('vendor_proposal'),
+  sponsorProposal('sponsor_proposal');
+
+  const AiAssistantDraftIntent(this.apiValue);
+
+  final String apiValue;
+}
+
+class AiAssistantDraftModel {
+  const AiAssistantDraftModel({
+    required this.intent,
+    required this.title,
+    required this.content,
+  });
+
+  final AiAssistantDraftIntent intent;
+  final String title;
+  final String content;
+
+  factory AiAssistantDraftModel.fromJson(Map<String, dynamic> json) {
+    final rawIntent = stringValue(json['intent'], fallback: 'chat_reply');
+    final intent = AiAssistantDraftIntent.values.firstWhere(
+      (value) => value.apiValue == rawIntent,
+      orElse: () => AiAssistantDraftIntent.chatReply,
+    );
+
+    return AiAssistantDraftModel(
+      intent: intent,
+      title: stringValue(json['title']),
+      content: stringValue(json['content']),
+    );
+  }
+}
+
 class AiEventRecommendationModel {
   const AiEventRecommendationModel({
     required this.score,

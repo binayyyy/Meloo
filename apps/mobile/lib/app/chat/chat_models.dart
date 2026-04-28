@@ -1,4 +1,8 @@
+import 'dart:convert';
 import '../session/auth_models.dart';
+import '../uploads/upload_models.dart';
+
+const _chatAttachmentPrefix = 'meloo://attachment/';
 
 class ChatParticipantModel {
   const ChatParticipantModel({
@@ -43,6 +47,10 @@ class ChatMessageModel {
   final DateTime createdAt;
 
   bool get isSystem => messageType == 'system';
+  bool get isAssistant => messageType == 'assistant';
+  ChatAttachmentModel? get attachment => ChatAttachmentModel.tryParse(body);
+  bool get hasAttachment => attachment != null;
+  String get previewText => attachment?.previewText ?? body;
 
   factory ChatMessageModel.fromJson(Map<String, dynamic> json) {
     return ChatMessageModel(
@@ -56,6 +64,99 @@ class ChatMessageModel {
       createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
     );
   }
+}
+
+class ChatAttachmentModel {
+  const ChatAttachmentModel({
+    required this.kind,
+    required this.url,
+    required this.name,
+    required this.mimeType,
+    required this.size,
+    this.note,
+  });
+
+  final UploadAssetKind kind;
+  final String url;
+  final String name;
+  final String mimeType;
+  final int size;
+  final String? note;
+
+  bool get isImage => kind == UploadAssetKind.image;
+  String get previewText {
+    final noteText = note?.trim();
+    if (noteText != null && noteText.isNotEmpty) {
+      return noteText;
+    }
+    return isImage ? 'Shared a photo' : 'Shared a file';
+  }
+
+  factory ChatAttachmentModel.fromUpload(
+    UploadedAssetModel asset, {
+    String? note,
+  }) {
+    return ChatAttachmentModel(
+      kind: asset.kind,
+      url: asset.url,
+      name: asset.originalName,
+      mimeType: asset.mimeType,
+      size: asset.size,
+      note: note,
+    );
+  }
+
+  factory ChatAttachmentModel.fromJson(Map<String, dynamic> json) {
+    return ChatAttachmentModel(
+      kind: (json['kind'] as String? ?? 'image') == 'document'
+          ? UploadAssetKind.document
+          : UploadAssetKind.image,
+      url: json['url'] as String? ?? '',
+      name: json['name'] as String? ?? 'Attachment',
+      mimeType: json['mimeType'] as String? ?? '',
+      size: (json['size'] as num?)?.toInt() ?? 0,
+      note: json['note'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'kind': kind == UploadAssetKind.document ? 'document' : 'image',
+      'url': url,
+      'name': name,
+      'mimeType': mimeType,
+      'size': size,
+      'note': note,
+    };
+  }
+
+  static ChatAttachmentModel? tryParse(String body) {
+    if (!body.startsWith(_chatAttachmentPrefix)) {
+      return null;
+    }
+    try {
+      final decoded = jsonDecode(
+        body.substring(_chatAttachmentPrefix.length),
+      );
+      if (decoded is! Map<String, dynamic>) {
+        return null;
+      }
+      return ChatAttachmentModel.fromJson(decoded);
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+String encodeChatAttachmentBody(
+  UploadedAssetModel asset, {
+  String? note,
+}) {
+  final payload = ChatAttachmentModel.fromUpload(
+    asset,
+    note: note?.trim().isEmpty == true ? null : note?.trim(),
+  );
+  return '$_chatAttachmentPrefix${jsonEncode(payload.toJson())}';
 }
 
 class ConversationModel {

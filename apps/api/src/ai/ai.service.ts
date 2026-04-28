@@ -1,8 +1,12 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ConversationParticipant, ConversationType, Message, MessageType } from '../chat/entities';
 import { Role } from '../common/enums/role.enum';
 import {
+  AiAssistantDraftIntent,
+  AiAssistantDraftRequestDto,
+  AiAssistantDraftResponseDto,
   AiSupportResponseDto,
   EventRecommendationResponseDto,
   OpportunityRecommendationResponseDto,
@@ -24,6 +28,12 @@ import {
   toNullableNumber,
 } from '../common/utils/distance.util';
 
+type ConversationAiContext = {
+  participants: ConversationParticipant[];
+  counterpart: ConversationParticipant | null;
+  recentMessages: Message[];
+};
+
 @Injectable()
 export class AiService {
   constructor(
@@ -41,6 +51,10 @@ export class AiService {
     private readonly sponsorshipOpportunitiesRepository: Repository<SponsorshipOpportunity>,
     @InjectRepository(UserProfile)
     private readonly userProfilesRepository: Repository<UserProfile>,
+    @InjectRepository(ConversationParticipant)
+    private readonly conversationParticipantsRepository: Repository<ConversationParticipant>,
+    @InjectRepository(Message)
+    private readonly messagesRepository: Repository<Message>,
   ) {}
 
   async generateSupportAssistance(
@@ -268,6 +282,80 @@ export class AiService {
       })
       .sort((left, right) => right.score - left.score)
       .slice(0, 6);
+  }
+
+  async generateAssistantDraft(
+    userId: string,
+    role: Role,
+    dto: AiAssistantDraftRequestDto,
+  ): Promise<AiAssistantDraftResponseDto> {
+    switch (dto.intent) {
+      case AiAssistantDraftIntent.CHAT_REPLY: {
+        if (dto.conversationId == null) {
+          throw new NotFoundException('Conversation is required for an AI reply draft');
+        }
+
+        return {
+          intent: dto.intent,
+          title: 'AI reply draft',
+          content: await this.generateConversationDraft(
+            userId,
+            role,
+            dto.conversationId,
+            dto.prompt,
+            'Draft a concise reply for the user to send next. Keep it natural, specific, and under 120 words. Do not use markdown.',
+          ),
+        };
+      }
+      case AiAssistantDraftIntent.ORGANIZER_PLAN: {
+        return {
+          intent: dto.intent,
+          title: 'Planning action draft',
+          content: await this.generateOrganizerPlanDraft(userId, role, dto),
+        };
+      }
+      case AiAssistantDraftIntent.VENDOR_PROPOSAL: {
+        return {
+          intent: dto.intent,
+          title: 'Vendor proposal draft',
+          content: await this.generateProposalDraft(
+            userId,
+            role,
+            dto,
+            Role.VENDOR,
+            'Draft a vendor proposal that can be sent directly in chat. Be concrete about scope, availability assumptions, pricing posture, and the next step. Keep it under 170 words and do not use markdown.',
+          ),
+        };
+      }
+      case AiAssistantDraftIntent.SPONSOR_PROPOSAL: {
+        return {
+          intent: dto.intent,
+          title: 'Sponsor proposal draft',
+          content: await this.generateProposalDraft(
+            userId,
+            role,
+            dto,
+            Role.SPONSOR,
+            'Draft a sponsor outreach or response proposal that can be sent directly in chat. Focus on audience fit, activation value, and a clear next step. Keep it under 170 words and do not use markdown.',
+          ),
+        };
+      }
+    }
+  }
+
+  async generateChatAutoReply(
+    replyingUserId: string,
+    role: Role,
+    conversationId: string,
+  ): Promise<string> {
+    return this.generateConversationDraft(
+      replyingUserId,
+      role,
+      conversationId,
+      null,
+      'Draft a short automatic acknowledgement reply for this user. Keep it to one or two sentences, be operationally helpful, and ask for the single most useful missing detail when relevant. Do not mention AI and do not use markdown.',
+      true,
+    );
   }
 
   async generatePlanningAssistant(
@@ -501,5 +589,264 @@ export class AiService {
       const milestoneDate = new Date(startAt.getTime() - days * 24 * 60 * 60 * 1000);
       return `${milestoneDate.toISOString().slice(0, 10)}: finalize the ${days}-day planning checkpoint.`;
     });
+  }
+
+  private async generateConversationDraft(
+    userId: string,
+    role: Role,
+    conversationId: string,
+    prompt: string | null | undefined,
+    instruction: string,
+    isAutoReply = false,
+  ): Promise<string> {
+    const context = await this.getConversationAiContext(userId, conversationId);
+    const me = context.participants.find((participant) => participant.userId === userId);
+    if (!me) {
+      throw new ForbiddenException('You are not part of this conversation');
+    }
+
+    const myName = this.participantName(me);
+    const counterpartName = context.counterpart == null
+      ? 'the other participant'
+      : this.participantName(context.counterpart);
+    const transcript = this.toTranscript(context.recentMessages);
+    const modelReply = await this.aiGatewayService.generateText([
+      {
+        role: 'system',
+        content: `${instruction} You are writing on behalf of a ${role} named ${myName}.`,
+      },
+      {
+        role: 'user',
+        content: JSON.stringify({
+          autoReply: isAutoReply,
+          prompt: prompt?.trim() || null,
+          me: {
+            name: myName,
+            role,
+          },
+          counterpart: context.counterpart == null
+            ? null
+            : {
+                name: counterpartName,
+                role: context.counterpart.user.role,
+              },
+          transcript,
+        }),
+      },
+    ]);
+
+    if (modelReply != null) {
+      return modelReply;
+    }
+
+    return this.buildFallbackConversationDraft(
+      role,
+      counterpartName,
+      prompt,
+      isAutoReply,
+    );
+  }
+
+  private async generateOrganizerPlanDraft(
+    userId: string,
+    role: Role,
+    dto: AiAssistantDraftRequestDto,
+  ): Promise<string> {
+    if (role !== Role.ORGANIZER && role !== Role.ADMIN) {
+      throw new ForbiddenException('Only organizers or admins can generate planning drafts');
+    }
+
+    let event: Event | null = null;
+    if (dto.eventId != null) {
+      event = await this.eventsRepository.findOne({
+        where: { id: dto.eventId },
+        relations: { category: true },
+      });
+
+      if (!event) {
+        throw new NotFoundException('Event not found');
+      }
+
+      if (role !== Role.ADMIN && event.organizerId !== userId) {
+        throw new ForbiddenException('You cannot generate a planning draft for this event');
+      }
+    }
+
+    const modelReply = await this.aiGatewayService.generateText([
+      {
+        role: 'system',
+        content:
+          'You are an event-planning copilot. Draft a production-ready planning note with clear priorities, likely risks, and immediate next steps. Keep it under 220 words and do not use markdown.',
+      },
+      {
+        role: 'user',
+        content: JSON.stringify({
+          eventTitle: event?.title ?? null,
+          city: event?.city ?? null,
+          category: event?.category.name ?? null,
+          startAt: event?.startAt.toISOString() ?? null,
+          endAt: event?.endAt.toISOString() ?? null,
+          prompt: dto.prompt?.trim() || null,
+        }),
+      },
+    ]);
+
+    if (modelReply != null) {
+      return modelReply;
+    }
+
+    const trimmedPrompt = dto.prompt?.trim();
+    const eventLabel = event?.title ?? 'this event';
+    const goal =
+      trimmedPrompt != null && trimmedPrompt.length > 0
+        ? trimmedPrompt
+        : 'tighten execution and reduce day-of surprises';
+    return `Priority plan for ${eventLabel}: lock owners for venue operations, attendee communications, and vendor coverage first. Then review ticket pacing, support escalation paths, and sponsor or vendor dependencies against the event timeline. For the next step, turn ${goal} into a dated checklist with one accountable owner per item and close the highest-risk gap this week.`;
+  }
+
+  private async generateProposalDraft(
+    userId: string,
+    role: Role,
+    dto: AiAssistantDraftRequestDto,
+    requiredRole: Role,
+    instruction: string,
+  ): Promise<string> {
+    if (role !== requiredRole && role !== Role.ADMIN) {
+      throw new ForbiddenException('This proposal draft is not available for your role');
+    }
+
+    if (dto.conversationId != null) {
+      return this.generateConversationDraft(
+        userId,
+        role,
+        dto.conversationId,
+        dto.prompt,
+        instruction,
+      );
+    }
+
+    const modelReply = await this.aiGatewayService.generateText([
+      {
+        role: 'system',
+        content: instruction,
+      },
+      {
+        role: 'user',
+        content: JSON.stringify({
+          role,
+          prompt: dto.prompt?.trim() || null,
+        }),
+      },
+    ]);
+
+    if (modelReply != null) {
+      return modelReply;
+    }
+
+    if (requiredRole === Role.VENDOR) {
+      return 'Thanks for the opportunity. Based on the scope shared so far, I can prepare a focused service proposal with availability, deliverables, and a pricing range once I have the event date, venue, guest count, and required coverage. If that works, send those details and I will turn around a final offer quickly.';
+    }
+
+    return 'Thanks for reaching out. I can shape a sponsorship proposal around audience fit, brand visibility, and on-site activation once I have the event timing, audience profile, and target outcome. Share those details and I will send a tighter package with recommended next steps.';
+  }
+
+  private async getConversationAiContext(
+    userId: string,
+    conversationId: string,
+  ): Promise<ConversationAiContext> {
+    const participants = await this.conversationParticipantsRepository.find({
+      where: { conversationId },
+      relations: {
+        conversation: true,
+        user: {
+          profile: true,
+        },
+      },
+    });
+
+    if (participants.length == 0) {
+      throw new NotFoundException('Conversation not found');
+    }
+
+    if (!participants.some((participant) => participant.userId === userId)) {
+      throw new ForbiddenException('You are not part of this conversation');
+    }
+
+    if (participants[0].conversation.type !== ConversationType.DIRECT) {
+      throw new ForbiddenException('AI drafting currently supports direct conversations only');
+    }
+
+    const recentMessages = (
+      await this.messagesRepository.find({
+        where: { conversationId },
+        relations: {
+          sender: {
+            profile: true,
+          },
+        },
+        order: { createdAt: 'DESC' },
+        take: 8,
+      })
+    ).reverse();
+
+    return {
+      participants,
+      counterpart:
+        participants.find((participant) => participant.userId !== userId) ?? null,
+      recentMessages,
+    };
+  }
+
+  private toTranscript(messages: Message[]): string[] {
+    return messages.map((message) => {
+      const senderName =
+        message.sender.profile?.fullName?.trim() || message.sender.email.trim();
+      const kind = message.messageType === MessageType.ASSISTANT ? 'assistant' : message.messageType;
+      return `${senderName} [${kind}]: ${message.body}`;
+    });
+  }
+
+  private participantName(participant: ConversationParticipant): string {
+    return participant.user.profile?.fullName?.trim() || participant.user.email.trim();
+  }
+
+  private buildFallbackConversationDraft(
+    role: Role,
+    counterpartName: string,
+    prompt: string | null | undefined,
+    isAutoReply: boolean,
+  ): string {
+    const trimmedPrompt = prompt?.trim();
+    const promptLead =
+      trimmedPrompt != null && trimmedPrompt.length > 0
+        ? `${trimmedPrompt} `
+        : '';
+    if (isAutoReply) {
+      switch (role) {
+        case Role.ORGANIZER:
+          return `${promptLead}Thanks ${counterpartName}, I’m reviewing this now and will follow up with the next event step shortly. If you have the date, venue, or attendee target ready, send that next so I can respond faster.`;
+        case Role.VENDOR:
+          return `${promptLead}Thanks ${counterpartName}, I can help with this. Send the event date, venue, guest count, and the service scope you need, and I’ll reply with availability and the best next step.`;
+        case Role.SPONSOR:
+          return `${promptLead}Thanks ${counterpartName}, I’m reviewing the opportunity. Please share the audience profile, timing, and the sponsor outcome you want most so I can tailor the response.`;
+        case Role.ADMIN:
+          return `${promptLead}Thanks ${counterpartName}, this has been noted and I’m reviewing the right next action now.`;
+        case Role.ATTENDEE:
+          return `${promptLead}Thanks ${counterpartName}, I saw your message and will get back to you shortly.`;
+      }
+    }
+
+    switch (role) {
+      case Role.ORGANIZER:
+        return `${promptLead}Thanks ${counterpartName}. I’m aligning the event side of this now and can confirm the next decision once I’ve checked timing, capacity, and dependencies.`;
+      case Role.VENDOR:
+        return `${promptLead}Thanks ${counterpartName}. I can put together scope, availability, and pricing once I have the event date, venue, attendee count, and the coverage you need.`;
+      case Role.SPONSOR:
+        return `${promptLead}Thanks ${counterpartName}. I can shape a stronger proposal once I have the audience profile, timeline, and the sponsor outcome you want to optimize for.`;
+      case Role.ADMIN:
+        return `${promptLead}Thanks ${counterpartName}. I’m reviewing this and will respond with the clearest next action shortly.`;
+      case Role.ATTENDEE:
+        return `${promptLead}Thanks ${counterpartName}. I’ve got the message and will follow up with the next step shortly.`;
+    }
   }
 }

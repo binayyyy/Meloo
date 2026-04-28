@@ -1,6 +1,9 @@
 import 'dart:async';
+import '../ai/ai_api_client.dart';
+import '../ai/ai_models.dart';
 import '../core/safe_change_notifier.dart';
 import '../session/auth_models.dart';
+import '../uploads/upload_models.dart';
 import 'chat_api_client.dart';
 import 'chat_models.dart';
 import 'chat_socket_client.dart';
@@ -9,18 +12,22 @@ class ChatController extends SafeChangeNotifier {
   ChatController({
     ChatApiClient? apiClient,
     ChatSocketClient? socketClient,
+    AiApiClient? aiApiClient,
   })  : _apiClient = apiClient ?? ChatApiClient(),
-        _socketClient = socketClient ?? ChatSocketClient() {
+        _socketClient = socketClient ?? ChatSocketClient(),
+        _aiApiClient = aiApiClient ?? AiApiClient() {
     _socketSubscription = _socketClient.events.listen(_handleSocketEvent);
   }
 
   final ChatApiClient _apiClient;
   final ChatSocketClient _socketClient;
+  final AiApiClient _aiApiClient;
   late final StreamSubscription<ChatSocketEvent> _socketSubscription;
 
   bool _isLoading = false;
   bool _isOpeningConversation = false;
   bool _isSending = false;
+  bool _isDrafting = false;
   List<ConversationModel> _conversations = const [];
   List<ChatMessageModel> _activeMessages = const [];
   String? _activeConversationId;
@@ -32,6 +39,7 @@ class ChatController extends SafeChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isOpeningConversation => _isOpeningConversation;
   bool get isSending => _isSending;
+  bool get isDrafting => _isDrafting;
   List<ConversationModel> get conversations => _conversations;
   List<ChatMessageModel> get activeMessages => _activeMessages;
   String? get activeConversationId => _activeConversationId;
@@ -131,6 +139,42 @@ class ChatController extends SafeChangeNotifier {
       rethrow;
     } finally {
       _isSending = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> sendAttachment(
+    UploadedAssetModel asset, {
+    String? note,
+  }) async {
+    await sendMessage(encodeChatAttachmentBody(asset, note: note));
+  }
+
+  Future<AiAssistantDraftModel> generateAssistantDraft(
+    AuthSession session, {
+    required AiAssistantDraftIntent intent,
+    String? prompt,
+  }) async {
+    final conversationId = _activeConversationId;
+    if (conversationId == null) {
+      throw StateError('Open a conversation before using AI drafting.');
+    }
+
+    _isDrafting = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      return await _aiApiClient.generateAssistantDraft(
+        accessToken: session.tokens.accessToken,
+        intent: intent,
+        conversationId: conversationId,
+        prompt: prompt,
+      );
+    } catch (error) {
+      _errorMessage = error.toString();
+      rethrow;
+    } finally {
+      _isDrafting = false;
       notifyListeners();
     }
   }

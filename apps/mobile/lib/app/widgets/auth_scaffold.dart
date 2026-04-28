@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'brand_lockup.dart';
 
 class AuthScaffold extends StatelessWidget {
   const AuthScaffold({
@@ -29,9 +30,9 @@ class AuthScaffold extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFFF8F1E6),
-              Color(0xFFF2E5D5),
-              Color(0xFFF9F7F2),
+              Color(0xFFF7F9FA),
+              Color(0xFFF1F4F7),
+              Color(0xFFEAEFF3),
             ],
           ),
         ),
@@ -39,187 +40,82 @@ class AuthScaffold extends StatelessWidget {
           child: Stack(
             children: [
               const Positioned(
-                top: -170,
-                left: -130,
-                child: _GlowOrb(size: 360, color: Color(0x22D8A548)),
+                top: -110,
+                left: -60,
+                child: _SoftOrb(size: 220, color: Color(0x14355C7D)),
               ),
               const Positioned(
-                top: 80,
-                right: -90,
-                child: _GlowOrb(size: 300, color: Color(0x181AB2C4)),
-              ),
-              const Positioned(
-                bottom: -140,
-                left: 20,
-                child: _GlowOrb(size: 320, color: Color(0x14132A4A)),
-              ),
-              const Positioned(
-                bottom: 120,
                 right: -80,
-                child: _GlowOrb(size: 240, color: Color(0x1AD8A548)),
+                bottom: -60,
+                child: _SoftOrb(size: 260, color: Color(0x102E4A62)),
               ),
               Center(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(20),
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1080),
+                    constraints: const BoxConstraints(maxWidth: 980),
                     child: LayoutBuilder(
                       builder: (context, constraints) {
-                        final compact = constraints.maxWidth < 820;
-                        return DecoratedBox(
+                        final compact = constraints.maxWidth < 860;
+                        return Container(
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.7),
-                            borderRadius: BorderRadius.circular(38),
-                            border: Border.all(color: const Color(0x1F5C4530)),
+                            color: Colors.white.withValues(alpha: 0.88),
+                            borderRadius: BorderRadius.circular(28),
+                            border: Border.all(color: const Color(0xFFDCE3E8)),
                             boxShadow: const [
                               BoxShadow(
-                                color: Color(0x241F160F),
-                                blurRadius: 50,
-                                offset: Offset(0, 24),
+                                color: Color(0x14101828),
+                                blurRadius: 28,
+                                offset: Offset(0, 14),
                               ),
                             ],
                           ),
                           child: Padding(
-                            padding: EdgeInsets.all(compact ? 20 : 28),
+                            padding: EdgeInsets.all(compact ? 18 : 22),
                             child: Flex(
                               direction: compact ? Axis.vertical : Axis.horizontal,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Expanded(
-                                  child: LayoutBuilder(
-                                    builder: (context, _) {
-                                      return DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(32),
-                                          gradient: const LinearGradient(
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                            colors: [
-                                              Color(0xFF0F1F3C),
-                                              Color(0xFF163C64),
-                                              Color(0xFF5D5A4F),
-                                            ],
-                                          ),
-                                          boxShadow: const [
-                                            BoxShadow(
-                                              color: Color(0x261F160F),
-                                              blurRadius: 38,
-                                              offset: Offset(0, 20),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Padding(
-                                          padding: EdgeInsets.all(compact ? 22 : 28),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              const _BrandLockup(),
-                                              SizedBox(
-                                                height: compact ? 96 : 180,
-                                              ),
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                  horizontal: 12,
-                                                  vertical: 8,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.white
-                                                      .withValues(alpha: 0.08),
-                                                  borderRadius:
-                                                      BorderRadius.circular(999),
-                                                  border: Border.all(
-                                                    color: Colors.white
-                                                        .withValues(alpha: 0.12),
-                                                  ),
-                                                ),
-                                                child: Text(
-                                                  eyebrow,
-                                                  style: const TextStyle(
-                                                    color: Color(0xFFF8F3EA),
-                                                    fontWeight: FontWeight.w800,
-                                                    letterSpacing: 0.4,
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(height: 18),
-                                              const Text(
-                                                'Live events,\ncleanly connected.',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 34,
-                                                  height: 1.02,
-                                                  fontWeight: FontWeight.w900,
-                                                  letterSpacing: -0.9,
-                                                ),
-                                              ),
-                                              if (highlights.isNotEmpty) ...[
-                                                const SizedBox(height: 20),
-                                                Wrap(
-                                                  spacing: 10,
-                                                  runSpacing: 10,
-                                                  children: highlights
-                                                      .take(compact ? 2 : 4)
-                                                      .map(
-                                                        (item) => _FeatureChip(
-                                                          label: item,
-                                                        ),
-                                                      )
-                                                      .toList(growable: false),
-                                                ),
-                                              ],
-                                              const SizedBox(height: 20),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    },
+                                  child: _AuthBrandPanel(
+                                    eyebrow: eyebrow,
+                                    highlights: highlights,
+                                    compact: compact,
                                   ),
                                 ),
                                 SizedBox(
-                                  width: compact ? 0 : 26,
-                                  height: compact ? 20 : 0,
+                                  width: compact ? 0 : 20,
+                                  height: compact ? 18 : 0,
                                 ),
                                 Expanded(
-                                  child: Padding(
-                                    padding: EdgeInsets.only(
-                                      left: compact ? 0 : 4,
-                                      top: compact ? 2 : 4,
-                                    ),
+                                  child: Container(
+                                    padding: EdgeInsets.all(compact ? 4 : 10),
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           title,
-                                          style: theme.textTheme.displaySmall
-                                              ?.copyWith(
-                                            fontWeight: FontWeight.w900,
-                                            letterSpacing: -1.1,
-                                            color: const Color(0xFF18161F),
+                                          style: theme.textTheme.headlineLarge?.copyWith(
+                                            fontWeight: FontWeight.w800,
                                           ),
                                         ),
-                                        const SizedBox(height: 12),
+                                        const SizedBox(height: 8),
                                         Text(
                                           subtitle,
-                                          style: theme.textTheme.bodyLarge
-                                              ?.copyWith(
-                                            color: const Color(0xFF625867),
-                                            height: 1.68,
+                                          style: theme.textTheme.bodyMedium?.copyWith(
+                                            color: const Color(0xFF66717D),
+                                            height: 1.5,
                                           ),
                                         ),
-                                        const SizedBox(height: 28),
-                                        child,
                                         const SizedBox(height: 24),
+                                        child,
+                                        const SizedBox(height: 20),
                                         Container(
                                           width: double.infinity,
-                                          padding: const EdgeInsets.only(top: 18),
+                                          padding: const EdgeInsets.only(top: 16),
                                           decoration: const BoxDecoration(
                                             border: Border(
-                                              top: BorderSide(
-                                                color: Color(0x1F5C4530),
-                                              ),
+                                              top: BorderSide(color: Color(0xFFDCE3E8)),
                                             ),
                                           ),
                                           child: footer,
@@ -232,10 +128,10 @@ class AuthScaffold extends StatelessWidget {
                             ),
                           ),
                         );
-                                      },
-                                    ),
-                                  ),
-                                ),
+                      },
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -245,52 +141,140 @@ class AuthScaffold extends StatelessWidget {
   }
 }
 
-class _BrandLockup extends StatelessWidget {
-  const _BrandLockup();
+class _AuthBrandPanel extends StatelessWidget {
+  const _AuthBrandPanel({
+    required this.eyebrow,
+    required this.highlights,
+    required this.compact,
+  });
+
+  final String eyebrow;
+  final List<String> highlights;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Image.asset(
-          'assets/branding/meloo-logo-v1.png',
-          height: 52,
-          fit: BoxFit.contain,
-          semanticLabel: 'Meloo',
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF2E4A62),
+            Color(0xFF496479),
+          ],
         ),
-        const SizedBox(height: 10),
-        const Text(
-          'Live event discovery and operations',
-          style: TextStyle(
-            color: Color(0xFFD8E2E6),
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
+      ),
+      padding: EdgeInsets.all(compact ? 20 : 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const MelooBrandMark(
+                size: 42,
+                padding: 8,
+                borderRadius: 14,
+                backgroundColor: Color(0x1FFFFFFF),
+              ),
+              const SizedBox(width: 10),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Meloo',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Live event operations',
+                    style: TextStyle(
+                      color: Color(0xFFD9E3EB),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ),
-      ],
+          SizedBox(height: compact ? 34 : 72),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              eyebrow,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Clean access\nfor every role.',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 28,
+              height: 1.02,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.7,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Attendee, organizer, vendor, sponsor, and admin flows stay aligned in one calmer workspace.',
+            style: TextStyle(
+              color: Color(0xFFDCE5EC),
+              fontSize: 13,
+              height: 1.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (highlights.isNotEmpty) ...[
+            const SizedBox(height: 18),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: highlights
+                  .map((item) => _BrandChip(label: item))
+                  .toList(growable: false),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
 
-class _FeatureChip extends StatelessWidget {
-  const _FeatureChip({required this.label});
+class _BrandChip extends StatelessWidget {
+  const _BrandChip({required this.label});
 
   final String label;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
+        color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
       ),
       child: Text(
         label,
         style: const TextStyle(
           color: Colors.white,
+          fontSize: 12,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -298,8 +282,8 @@ class _FeatureChip extends StatelessWidget {
   }
 }
 
-class _GlowOrb extends StatelessWidget {
-  const _GlowOrb({
+class _SoftOrb extends StatelessWidget {
+  const _SoftOrb({
     required this.size,
     required this.color,
   });

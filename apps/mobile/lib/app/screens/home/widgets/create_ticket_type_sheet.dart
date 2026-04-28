@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../events/event_models.dart';
+import '../../../widgets/modal_form_scaffold.dart';
 
 class CreateTicketTypeSheet extends StatefulWidget {
   const CreateTicketTypeSheet({
@@ -90,96 +91,80 @@ class _CreateTicketTypeSheetState extends State<CreateTicketTypeSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 20, 20, bottomInset + 20),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Add ticket type',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Free tickets can be booked immediately. Paid tickets will be blocked until checkout is implemented.',
-                style: TextStyle(color: Color(0xFF5F645F), height: 1.5),
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Ticket name',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) =>
-                    value == null || value.trim().isEmpty ? 'Name is required' : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _priceController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  labelText: 'Price',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  final parsed = double.tryParse(value ?? '');
-                  if (parsed == null || parsed < 0) {
-                    return 'Enter a valid price';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _quantityController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Quantity',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  final parsed = int.tryParse(value ?? '');
-                  if (parsed == null || parsed <= 0) {
-                    return 'Enter a positive quantity';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              _DateField(
-                label: 'Sale start',
-                value: _saleStartAt!,
-                onTap: () => _pickDateTime(isStart: true),
-              ),
-              const SizedBox(height: 12),
-              _DateField(
-                label: 'Sale end',
-                value: _saleEndAt!,
-                onTap: () => _pickDateTime(isStart: false),
-              ),
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: widget.isSubmitting ? null : _submit,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: Text(
-                      widget.isSubmitting ? 'Saving ticket...' : 'Save ticket',
-                    ),
-                  ),
-                ),
-              ),
-            ],
+    return Form(
+      key: _formKey,
+      child: ModalFormScaffold(
+        title: 'Add ticket type',
+        subtitle:
+            'Set a clear ticket offer with sale window, quantity, and pricing.',
+        icon: Icons.confirmation_number_rounded,
+        actionLabel: 'Save ticket',
+        submittingLabel: 'Saving ticket...',
+        isSubmitting: widget.isSubmitting,
+        onSubmit: _submit,
+        children: [
+          const ModalFormInfoCard(
+            title: 'Checkout behavior',
+            message:
+                'Free tickets can be booked immediately. Paid tickets continue into Stripe checkout.',
+            icon: Icons.credit_card_rounded,
           ),
-        ),
+          ModalFormSection(
+            title: 'Ticket details',
+            subtitle: 'Basics for inventory, pricing, and sales timing.',
+            icon: Icons.sell_rounded,
+            child: Column(
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(labelText: 'Ticket name'),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Name is required'
+                      : null,
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _priceController,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'Price'),
+                  validator: (value) {
+                    final parsed = double.tryParse(value ?? '');
+                    if (parsed == null || parsed < 0) {
+                      return 'Enter a valid price';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _quantityController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Quantity'),
+                  validator: (value) {
+                    final parsed = int.tryParse(value ?? '');
+                    if (parsed == null || parsed <= 0) {
+                      return 'Enter a positive quantity';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 14),
+                _DateField(
+                  label: 'Sale start',
+                  value: _saleStartAt!,
+                  onTap: () => _pickDateTime(isStart: true),
+                ),
+                const SizedBox(height: 12),
+                _DateField(
+                  label: 'Sale end',
+                  value: _saleEndAt!,
+                  onTap: () => _pickDateTime(isStart: false),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -201,10 +186,9 @@ class _DateField extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
-      child: InputDecorator(
+        child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          border: const OutlineInputBorder(),
           suffixIcon: const Icon(Icons.sell_outlined),
         ),
         child: Text(
@@ -214,4 +198,3 @@ class _DateField extends StatelessWidget {
     );
   }
 }
-

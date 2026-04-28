@@ -73,6 +73,29 @@ class AiApiClient {
     return AiPlanningAssistantResponseModel.fromJson(_decodeMap(response));
   }
 
+  Future<AiAssistantDraftModel> generateAssistantDraft({
+    required String accessToken,
+    required AiAssistantDraftIntent intent,
+    String? conversationId,
+    String? eventId,
+    String? prompt,
+  }) async {
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/ai/assistant/draft'),
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'intent': intent.apiValue,
+        if (conversationId != null) 'conversationId': conversationId,
+        if (eventId != null) 'eventId': eventId,
+        if (prompt != null && prompt.trim().isNotEmpty) 'prompt': prompt.trim(),
+      }),
+    );
+    return AiAssistantDraftModel.fromJson(_decodeMap(response));
+  }
+
   List<Map<String, dynamic>> _decodeList(http.Response response) {
     final dynamic decoded =
         response.body.isEmpty ? <dynamic>[] : jsonDecode(response.body);

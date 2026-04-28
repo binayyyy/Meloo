@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/brand_lockup.dart';
 
 class LoadingScreen extends StatefulWidget {
   const LoadingScreen({super.key});
@@ -35,9 +36,9 @@ class _LoadingScreenState extends State<LoadingScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFFF8F1E6),
-              Color(0xFFF4E8D8),
-              Color(0xFFEEE5D8),
+              Color(0xFFF6F8FA),
+              Color(0xFFF0F4F7),
+              Color(0xFFE9EEF2),
             ],
           ),
         ),
@@ -47,12 +48,12 @@ class _LoadingScreenState extends State<LoadingScreen>
               const Positioned(
                 top: -120,
                 right: -80,
-                child: _GlowOrb(size: 280, color: Color(0x221AB2C4)),
+                child: _GlowOrb(size: 280, color: Color(0x14355C7D)),
               ),
               const Positioned(
                 bottom: -110,
                 left: -60,
-                child: _GlowOrb(size: 260, color: Color(0x1CD8A548)),
+                child: _GlowOrb(size: 260, color: Color(0x102E4A62)),
               ),
               Center(
                 child: AnimatedBuilder(
@@ -76,7 +77,7 @@ class _LoadingScreenState extends State<LoadingScreen>
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: const Color(0x221AB2C4),
+                                      color: const Color(0x22355C7D),
                                       width: 1.5,
                                     ),
                                   ),
@@ -90,27 +91,27 @@ class _LoadingScreenState extends State<LoadingScreen>
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: const Color(0x2ED8A548),
+                                      color: const Color(0x1E2E4A62),
                                       width: 2,
                                     ),
                                   ),
                                 ),
                               ),
                               Container(
-                                width: 88,
-                                height: 88,
+                                width: 82,
+                                height: 82,
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                  borderRadius: BorderRadius.circular(28),
+                                  color: Colors.white.withValues(alpha: 0.92),
+                                  borderRadius: BorderRadius.circular(24),
                                   boxShadow: const [
                                     BoxShadow(
-                                      color: Color(0x1A132A4A),
-                                      blurRadius: 20,
+                                      color: Color(0x12101828),
+                                      blurRadius: 18,
                                       offset: Offset(0, 10),
                                     ),
                                   ],
                                 ),
-                                padding: const EdgeInsets.all(12),
+                                padding: const EdgeInsets.all(14),
                                 child: Image.asset(
                                   'assets/branding/meloo-mark-v1.png',
                                   fit: BoxFit.contain,
@@ -120,18 +121,15 @@ class _LoadingScreenState extends State<LoadingScreen>
                           ),
                         ),
                         const SizedBox(height: 28),
-                        Image.asset(
-                          'assets/branding/meloo-logo-v1.png',
-                          width: 220,
-                          fit: BoxFit.contain,
-                          semanticLabel: 'Meloo',
+                        const MelooBrandLockup(
+                          showCaption: false,
                         ),
                         const SizedBox(height: 8),
                         const Text(
                           'Preparing live event operations',
                           style: TextStyle(
-                            color: Color(0xFF6C675E),
-                            fontSize: 15,
+                            color: Color(0xFF68737D),
+                            fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
                         ),

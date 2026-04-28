@@ -3,6 +3,7 @@ import 'package:latlong2/latlong.dart';
 import '../../../events/event_models.dart';
 import '../../../uploads/upload_models.dart';
 import '../../../widgets/location_map_field.dart';
+import '../../../widgets/modal_form_scaffold.dart';
 import '../../../widgets/upload_field_card.dart';
 
 class CreateEventSheet extends StatefulWidget {
@@ -141,155 +142,142 @@ class _CreateEventSheetState extends State<CreateEventSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 20, 20, bottomInset + 20),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Create event',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Set the event details and location.',
-                style: TextStyle(color: Color(0xFF5F645F), height: 1.5),
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Title',
-                  border: OutlineInputBorder(),
+    return Form(
+      key: _formKey,
+      child: ModalFormScaffold(
+        title: 'Create event',
+        subtitle: 'Set the event details, cover image, and location.',
+        icon: Icons.event_note_rounded,
+        actionLabel: 'Save event',
+        submittingLabel: 'Saving event...',
+        isSubmitting: widget.isSubmitting,
+        onSubmit: _submit,
+        children: [
+          ModalFormSection(
+            title: 'Core details',
+            icon: Icons.badge_rounded,
+            child: Column(
+              children: [
+                TextFormField(
+                  controller: _titleController,
+                  decoration: const InputDecoration(labelText: 'Title'),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Title is required'
+                      : null,
                 ),
-                validator: (value) =>
-                    value == null || value.trim().isEmpty ? 'Title is required' : null,
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                initialValue: _categoryId,
-                items: widget.categories
-                    .map(
-                      (category) => DropdownMenuItem<String>(
-                        value: category.id,
-                        child: Text(category.name),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: widget.isSubmitting
-                    ? null
-                    : (value) {
-                        if (value != null) {
-                          setState(() => _categoryId = value);
-                        }
-                      },
-                decoration: const InputDecoration(
-                  labelText: 'Category',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  initialValue: _categoryId,
+                  items: widget.categories
+                      .map(
+                        (category) => DropdownMenuItem<String>(
+                          value: category.id,
+                          child: Text(category.name),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: widget.isSubmitting
+                      ? null
+                      : (value) {
+                          if (value != null) {
+                            setState(() => _categoryId = value);
+                          }
+                        },
+                  decoration: const InputDecoration(labelText: 'Category'),
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _descriptionController,
+                  maxLines: 4,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                  validator: (value) => value == null || value.trim().length < 20
+                      ? 'Use at least 20 characters'
+                      : null,
                 ),
-                validator: (value) => value == null || value.trim().length < 20
-                    ? 'Use at least 20 characters'
-                    : null,
-              ),
-              const SizedBox(height: 16),
-              UploadFieldCard(
-                label: 'Cover image',
-                accessToken: widget.accessToken,
-                controller: _coverImageUrlController,
-                kind: UploadAssetKind.image,
-                helper:
-                    'Upload the event banner directly here or paste an existing asset URL.',
-                previewHeight: 160,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _venueController,
-                decoration: const InputDecoration(
-                  labelText: 'Venue',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) =>
-                    value == null || value.trim().isEmpty ? 'Venue is required' : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _cityController,
-                decoration: const InputDecoration(
-                  labelText: 'City',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) =>
-                    value == null || value.trim().isEmpty ? 'City is required' : null,
-              ),
-              const SizedBox(height: 16),
-              LocationMapField(
-                label: 'Event map location',
-                helper:
-                    'Tap the map to place the venue area. Meloo uses this point to sort nearby vendors for the event.',
-                radiusLabel: 'Vendor match radius',
-                initialLatitude: _latitude,
-                initialLongitude: _longitude,
-                initialRadiusKm: _vendorMatchRadiusKm,
-                defaultCenter: const LatLng(27.7172, 85.3240),
-                onChanged: (selection) {
-                  _latitude = selection.latitude;
-                  _longitude = selection.longitude;
-                  _vendorMatchRadiusKm = selection.radiusKm;
-                },
-              ),
-              const SizedBox(height: 16),
-              _DateField(
-                label: 'Start',
-                value: _startAt,
-                onTap: () => _pickDateTime(isStart: true),
-              ),
-              const SizedBox(height: 12),
-              _DateField(
-                label: 'End',
-                value: _endAt,
-                onTap: () => _pickDateTime(isStart: false),
-              ),
-              const SizedBox(height: 8),
-              SwitchListTile(
-                value: _publishImmediately,
-                onChanged: widget.isSubmitting
-                    ? null
-                    : (value) => setState(() => _publishImmediately = value),
-                title: const Text('Publish immediately'),
-                subtitle: const Text('Turn this off to save the event as a draft.'),
-                contentPadding: EdgeInsets.zero,
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: widget.isSubmitting ? null : _submit,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: Text(
-                      widget.isSubmitting ? 'Saving event...' : 'Save event',
-                    ),
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+          ModalFormSection(
+            title: 'Media and venue',
+            icon: Icons.image_rounded,
+            child: Column(
+              children: [
+                UploadFieldCard(
+                  label: 'Cover image',
+                  accessToken: widget.accessToken,
+                  controller: _coverImageUrlController,
+                  kind: UploadAssetKind.image,
+                  helper:
+                      'Upload the event banner directly here or paste an existing asset URL.',
+                  previewHeight: 160,
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _venueController,
+                  decoration: const InputDecoration(labelText: 'Venue'),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Venue is required'
+                      : null,
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _cityController,
+                  decoration: const InputDecoration(labelText: 'City'),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'City is required'
+                      : null,
+                ),
+              ],
+            ),
+          ),
+          ModalFormSection(
+            title: 'Location and timing',
+            icon: Icons.place_rounded,
+            child: Column(
+              children: [
+                LocationMapField(
+                  label: 'Event map location',
+                  helper:
+                      'Tap the map to place the venue area. Meloo uses this point to sort nearby vendors for the event.',
+                  radiusLabel: 'Vendor match radius',
+                  initialLatitude: _latitude,
+                  initialLongitude: _longitude,
+                  initialRadiusKm: _vendorMatchRadiusKm,
+                  defaultCenter: const LatLng(27.7172, 85.3240),
+                  onChanged: (selection) {
+                    _latitude = selection.latitude;
+                    _longitude = selection.longitude;
+                    _vendorMatchRadiusKm = selection.radiusKm;
+                  },
+                ),
+                const SizedBox(height: 14),
+                _DateField(
+                  label: 'Start',
+                  value: _startAt,
+                  onTap: () => _pickDateTime(isStart: true),
+                ),
+                const SizedBox(height: 12),
+                _DateField(
+                  label: 'End',
+                  value: _endAt,
+                  onTap: () => _pickDateTime(isStart: false),
+                ),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  value: _publishImmediately,
+                  onChanged: widget.isSubmitting
+                      ? null
+                      : (value) => setState(() => _publishImmediately = value),
+                  title: const Text('Publish immediately'),
+                  subtitle: const Text(
+                    'Turn this off to save the event as a draft.',
+                  ),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

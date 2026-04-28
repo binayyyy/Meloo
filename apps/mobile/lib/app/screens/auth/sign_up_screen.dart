@@ -53,9 +53,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final authController = AuthScope.of(context);
 
     return AuthScaffold(
-      eyebrow: 'Create Meloo account',
+      eyebrow: 'New workspace',
       title: 'Create account',
-      subtitle: 'Choose your role and continue.',
+      subtitle: 'Choose the role you want to start with.',
       highlights: const [
         'Attendee',
         'Organizer',
@@ -114,20 +114,66 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                Column(
                   children: const [
-                    ('attendee', 'Attendee'),
-                    ('organizer', 'Organizer'),
-                    ('vendor', 'Vendor'),
-                    ('sponsor', 'Sponsor'),
+                    ('attendee', 'Attendee', Icons.person_outline_rounded),
+                    ('organizer', 'Organizer', Icons.event_note_rounded),
+                    ('vendor', 'Vendor', Icons.storefront_rounded),
+                    ('sponsor', 'Sponsor', Icons.campaign_rounded),
                   ].map((entry) {
                     final selected = _role == entry.$1;
-                    return ChoiceChip(
-                      label: Text(entry.$2),
-                      selected: selected,
-                      onSelected: (_) => setState(() => _role = entry.$1),
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: InkWell(
+                        onTap: () => setState(() => _role = entry.$1),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? const Color(0xFFEAF0F5)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: selected
+                                  ? const Color(0xFF2E4A62)
+                                  : const Color(0xFFD9E1E7),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                entry.$3,
+                                size: 20,
+                                color: selected
+                                    ? const Color(0xFF2E4A62)
+                                    : const Color(0xFF68737D),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  entry.$2,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: selected
+                                        ? const Color(0xFF17212B)
+                                        : const Color(0xFF3D4751),
+                                  ),
+                                ),
+                              ),
+                              if (selected)
+                                const Icon(
+                                  Icons.check_circle_rounded,
+                                  size: 20,
+                                  color: Color(0xFF2E4A62),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
                     );
                   }).toList(growable: false),
                 ),
@@ -160,7 +206,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       child: Text(
                         authController.isLoading
                             ? 'Creating account...'
-                            : 'Create Meloo account',
+                            : 'Create account',
                       ),
                     ),
                   ),

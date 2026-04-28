@@ -15,6 +15,35 @@ export class AiGatewayService {
   async generateJson<T>(
     messages: ChatMessage[],
   ): Promise<T | null> {
+    const content = await this.generateContent(messages, true);
+    if (content == null) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(this.stripMarkdownFences(content)) as T;
+    } catch (error) {
+      this.logger.warn(
+        `Model JSON parse failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return null;
+    }
+  }
+
+  async generateText(messages: ChatMessage[]): Promise<string | null> {
+    const content = await this.generateContent(messages, false);
+    if (content == null) {
+      return null;
+    }
+
+    const normalized = this.stripMarkdownFences(content).trim();
+    return normalized.length > 0 ? normalized : null;
+  }
+
+  private async generateContent(
+    messages: ChatMessage[],
+    expectsJson: boolean,
+  ): Promise<string | null> {
     const enabled = this.configService.get<boolean>('ai.enabled') ?? true;
     if (!enabled) {
       return null;
@@ -44,7 +73,7 @@ export class AiGatewayService {
             body: JSON.stringify({
               model,
               temperature: 0.2,
-              response_format: { type: 'json_object' },
+              ...(expectsJson ? { response_format: { type: 'json_object' } } : {}),
               messages,
             }),
             signal: controller.signal,
@@ -55,7 +84,7 @@ export class AiGatewayService {
             body: JSON.stringify({
               model,
               stream: false,
-              format: 'json',
+              ...(expectsJson ? { format: 'json' } : {}),
               messages,
             }),
             signal: controller.signal,
@@ -76,7 +105,7 @@ export class AiGatewayService {
         return null;
       }
 
-      return JSON.parse(this.stripMarkdownFences(content)) as T;
+      return content;
     } catch (error) {
       this.logger.warn(
         `Model request failed: ${error instanceof Error ? error.message : String(error)}`,

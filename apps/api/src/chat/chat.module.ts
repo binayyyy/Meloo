@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AiModule } from '../ai/ai.module';
 import { AuthModule } from '../auth/auth.module';
 import { NotificationsModule } from '../notifications/notifications.module';
-import { Session, User } from '../users/entities';
+import { Session, User, UserSetting } from '../users/entities';
 import { ChatRealtimeService } from './chat-realtime.service';
 import { ChatController } from './chat.controller';
 import { ChatGateway } from './chat.gateway';
@@ -11,6 +12,7 @@ import { Conversation, ConversationParticipant, Message } from './entities';
 
 @Module({
   imports: [
+    AiModule,
     AuthModule,
     NotificationsModule,
     TypeOrmModule.forFeature([
@@ -19,6 +21,7 @@ import { Conversation, ConversationParticipant, Message } from './entities';
       Message,
       Session,
       User,
+      UserSetting,
     ]),
   ],
   controllers: [ChatController],

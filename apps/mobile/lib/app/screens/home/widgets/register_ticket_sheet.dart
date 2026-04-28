@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../events/event_models.dart';
+import '../../../widgets/modal_form_scaffold.dart';
 
 class RegisterTicketSheet extends StatefulWidget {
   const RegisterTicketSheet({
@@ -27,40 +28,37 @@ class _RegisterTicketSheetState extends State<RegisterTicketSheet> {
         : 5;
     final navigator = Navigator.of(context);
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        20,
-        20,
-        MediaQuery.of(context).viewInsets.bottom + 20,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Register for ${widget.ticketType.name}',
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+    return ModalFormScaffold(
+      title: 'Register for ${widget.ticketType.name}',
+      subtitle: widget.ticketType.isFree
+          ? 'This is a free ticket, so registration confirms immediately.'
+          : 'This ticket continues into Stripe Checkout so payment finishes on a hosted page.',
+      icon: Icons.local_activity_rounded,
+      actionLabel:
+          widget.ticketType.isFree ? 'Confirm registration' : 'Continue to Stripe',
+      submittingLabel: 'Submitting...',
+      isSubmitting: widget.isSubmitting,
+      onSubmit: () async {
+        await widget.onSubmit(_quantity);
+        if (mounted) {
+          navigator.pop();
+        }
+      },
+      children: [
+        if (!widget.ticketType.isFree)
+          ModalFormInfoCard(
+            title: 'Order total',
+            message:
+                'Current total: ${(double.parse(widget.ticketType.price) * _quantity).toStringAsFixed(2)}',
+            icon: Icons.payments_rounded,
+            tint: const Color(0xFFEAF5EF),
+            iconColor: const Color(0xFF246B4F),
           ),
-          const SizedBox(height: 12),
-          Text(
-            widget.ticketType.isFree
-                ? 'This is a free ticket. Registration confirms immediately.'
-                : 'This ticket uses Stripe Checkout in test mode. You will finish payment on the hosted Stripe page and then return to the app.',
-            style: const TextStyle(color: Color(0xFF5F645F), height: 1.5),
-          ),
-          if (!widget.ticketType.isFree) ...[
-            const SizedBox(height: 12),
-            Text(
-              'Total: ${(double.parse(widget.ticketType.price) * _quantity).toStringAsFixed(2)}',
-              style: const TextStyle(
-                color: Color(0xFF0E6B5C),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-          const SizedBox(height: 20),
-          DropdownButtonFormField<int>(
+        ModalFormSection(
+          title: 'Quantity',
+          subtitle: 'Choose how many tickets to reserve in this order.',
+          icon: Icons.pin_rounded,
+          child: DropdownButtonFormField<int>(
             initialValue: _quantity,
             items: List.generate(
               maxQuantity,
@@ -76,37 +74,10 @@ class _RegisterTicketSheetState extends State<RegisterTicketSheet> {
                       setState(() => _quantity = value);
                     }
                   },
-            decoration: const InputDecoration(
-              labelText: 'Quantity',
-              border: OutlineInputBorder(),
-            ),
+            decoration: const InputDecoration(labelText: 'Quantity'),
           ),
-          const SizedBox(height: 18),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: widget.isSubmitting
-                  ? null
-                  : () async {
-                      await widget.onSubmit(_quantity);
-                      if (mounted) {
-                        navigator.pop();
-                      }
-                    },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                child: Text(
-                  widget.isSubmitting
-                      ? 'Submitting...'
-                      : widget.ticketType.isFree
-                          ? 'Confirm registration'
-                          : 'Continue to Stripe',
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

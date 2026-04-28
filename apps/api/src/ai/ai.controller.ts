@@ -6,6 +6,8 @@ import { AccessTokenGuard } from '../common/guards/access-token.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { AuthenticatedUser } from '../common/interfaces/authenticated-user.interface';
 import {
+  AiAssistantDraftRequestDto,
+  AiAssistantDraftResponseDto,
   AiSupportRequestDto,
   AiSupportResponseDto,
   EventRecommendationResponseDto,
@@ -26,6 +28,14 @@ export class AiController {
     @Body() dto: AiSupportRequestDto,
   ): Promise<AiSupportResponseDto> {
     return this.aiService.generateSupportAssistance(dto.category, dto.message);
+  }
+
+  @Post('assistant/draft')
+  generateAssistantDraft(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: AiAssistantDraftRequestDto,
+  ): Promise<AiAssistantDraftResponseDto> {
+    return this.aiService.generateAssistantDraft(user.sub, user.role, dto);
   }
 
   @Get('recommendations/events')

@@ -12,6 +12,7 @@ import { Conversation } from './conversation.entity';
 
 export enum MessageType {
   TEXT = 'text',
+  ASSISTANT = 'assistant',
   SYSTEM = 'system',
 }
 

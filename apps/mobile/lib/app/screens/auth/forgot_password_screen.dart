@@ -54,7 +54,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       eyebrow: 'Password reset',
       title: 'Reset password',
       subtitle:
-          'Request a reset for your Meloo account. Local builds still show the debug token for testing.',
+          'Request a reset for your Meloo account. Local builds still expose the debug token for testing.',
       highlights: const [
         'Secure reset',
         'Debug token in local',
@@ -113,7 +113,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       child: Text(
                         authController.isLoading
                             ? 'Preparing reset...'
-                            : 'Request password reset',
+                            : 'Request reset',
                       ),
                     ),
                   ),

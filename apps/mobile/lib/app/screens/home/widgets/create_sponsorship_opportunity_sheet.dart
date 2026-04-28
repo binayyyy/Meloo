@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../events/event_models.dart';
 import '../../../sponsors/sponsor_models.dart';
+import '../../../widgets/modal_form_scaffold.dart';
 
 class CreateSponsorshipOpportunitySheet extends StatefulWidget {
   const CreateSponsorshipOpportunitySheet({
@@ -76,118 +77,96 @@ class _CreateSponsorshipOpportunitySheetState
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        20,
-        20,
-        MediaQuery.of(context).viewInsets.bottom + 20,
-      ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Create sponsorship opportunity',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Publish the audience, budget target, and benefits so sponsors can submit interest against a real event.',
-                style: TextStyle(color: Color(0xFF5F645F), height: 1.5),
-              ),
-              const SizedBox(height: 20),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedEventId,
-                decoration: const InputDecoration(
-                  labelText: 'Event',
-                  border: OutlineInputBorder(),
+    return Form(
+      key: _formKey,
+      child: ModalFormScaffold(
+        title: 'Create sponsorship opportunity',
+        subtitle:
+            'Publish a clean package with audience, budget target, and sponsor value so outreach feels credible.',
+        icon: Icons.campaign_rounded,
+        actionLabel: 'Create opportunity',
+        submittingLabel: 'Creating opportunity...',
+        isSubmitting: widget.isSubmitting,
+        onSubmit: _submit,
+        children: [
+          ModalFormSection(
+            title: 'Opportunity setup',
+            subtitle: 'Anchor the offer to an event and define the target.',
+            icon: Icons.event_available_rounded,
+            child: Column(
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedEventId,
+                  decoration: const InputDecoration(labelText: 'Event'),
+                  items: widget.events
+                      .map(
+                        (event) => DropdownMenuItem<String>(
+                          value: event.id,
+                          child: Text(event.title),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: widget.isSubmitting
+                      ? null
+                      : (value) => setState(() => _selectedEventId = value),
+                  validator: (value) =>
+                      value == null ? 'Choose an event first' : null,
                 ),
-                items: widget.events
-                    .map(
-                      (event) => DropdownMenuItem<String>(
-                        value: event.id,
-                        child: Text(event.title),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: widget.isSubmitting
-                    ? null
-                    : (value) => setState(() => _selectedEventId = value),
-                validator: (value) =>
-                    value == null ? 'Choose an event first' : null,
-              ),
-              const SizedBox(height: 16),
-              _field(_titleController, 'Opportunity title'),
-              const SizedBox(height: 16),
-              _field(
-                _requiredAmountController,
-                'Required amount',
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              ),
-              const SizedBox(height: 16),
-              _field(_targetAudienceController, 'Target audience'),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                initialValue: _status,
-                decoration: const InputDecoration(
-                  labelText: 'Status',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 14),
+                _field(_titleController, 'Opportunity title'),
+                const SizedBox(height: 14),
+                _field(
+                  _requiredAmountController,
+                  'Required amount',
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                 ),
-                items: const [
-                  DropdownMenuItem(value: 'open', child: Text('Open')),
-                  DropdownMenuItem(value: 'closed', child: Text('Closed')),
-                  DropdownMenuItem(value: 'filled', child: Text('Filled')),
-                ],
-                onChanged: widget.isSubmitting
-                    ? null
-                    : (value) => setState(() => _status = value ?? 'open'),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 14),
+                _field(_targetAudienceController, 'Target audience'),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  initialValue: _status,
+                  decoration: const InputDecoration(labelText: 'Status'),
+                  items: const [
+                    DropdownMenuItem(value: 'open', child: Text('Open')),
+                    DropdownMenuItem(value: 'closed', child: Text('Closed')),
+                    DropdownMenuItem(value: 'filled', child: Text('Filled')),
+                  ],
+                  onChanged: widget.isSubmitting
+                      ? null
+                      : (value) => setState(() => _status = value ?? 'open'),
                 ),
-                validator: (value) => value == null || value.trim().length < 20
-                    ? 'Use at least 20 characters'
-                    : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _benefitsController,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Benefits offered',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => value == null || value.trim().length < 20
-                    ? 'Use at least 20 characters'
-                    : null,
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: widget.isSubmitting ? null : _submit,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: Text(
-                      widget.isSubmitting
-                          ? 'Creating opportunity...'
-                          : 'Create opportunity',
-                    ),
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+          ModalFormSection(
+            title: 'Pitch details',
+            subtitle: 'Explain the story, value, and sponsor-facing benefits.',
+            icon: Icons.description_rounded,
+            child: Column(
+              children: [
+                TextFormField(
+                  controller: _descriptionController,
+                  maxLines: 4,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                  validator: (value) => value == null || value.trim().length < 20
+                      ? 'Use at least 20 characters'
+                      : null,
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _benefitsController,
+                  maxLines: 4,
+                  decoration:
+                      const InputDecoration(labelText: 'Benefits offered'),
+                  validator: (value) => value == null || value.trim().length < 20
+                      ? 'Use at least 20 characters'
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -200,10 +179,7 @@ class _CreateSponsorshipOpportunitySheetState
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
+      decoration: InputDecoration(labelText: label),
       validator: (value) =>
           value == null || value.trim().isEmpty ? '$label is required' : null,
     );

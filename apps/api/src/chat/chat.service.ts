@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { AiService } from '../ai/ai.service';
 import { NotificationType } from '../notifications/entities';
 import { NotificationsService } from '../notifications/notifications.service';
 import { User } from '../users/entities';
@@ -14,6 +15,7 @@ import {
   MessageResponseDto,
   SendMessageDto,
 } from './dto';
+import { ChatRealtimeService } from './chat-realtime.service';
 import {
   Conversation,
   ConversationParticipant,
@@ -25,6 +27,8 @@ import {
 @Injectable()
 export class ChatService {
   constructor(
+    private readonly aiService: AiService,
+    private readonly chatRealtimeService: ChatRealtimeService,
     private readonly notificationsService: NotificationsService,
     @InjectRepository(Conversation)
     private readonly conversationsRepository: Repository<Conversation>,
@@ -184,6 +188,7 @@ export class ChatService {
     conversationId: string,
     dto: SendMessageDto,
   ): Promise<MessageResponseDto> {
+    const conversation = await this.findConversationWithParticipants(conversationId);
     await this.assertConversationParticipant(conversationId, userId);
 
     const message = await this.messagesRepository.save(
@@ -196,22 +201,30 @@ export class ChatService {
     );
 
     const hydratedMessage = await this.getMessageByIdOrFail(message.id, conversationId);
-    const participantIds = await this.listConversationParticipantIds(conversationId);
-    await Promise.all(
-      participantIds
-        .filter((participantId) => participantId !== userId)
-        .map((participantId) =>
-          this.notificationsService.createNotification({
-            userId: participantId,
-            type: NotificationType.CHAT,
-            title: 'New chat message',
-            body: dto.body.trim().slice(0, 180),
-            resourceType: 'conversation',
-            resourceId: conversationId,
-          }),
-        ),
+    const response = this.toMessageResponse(hydratedMessage);
+    this.chatRealtimeService.broadcastToConversation(conversationId, {
+      event: 'message_created',
+      data: response,
+    });
+
+    const recipients = conversation.participants.filter(
+      (participant) => participant.userId !== userId,
     );
-    return this.toMessageResponse(hydratedMessage);
+    await Promise.all(
+      recipients.map((participant) =>
+        this.notificationsService.createNotification({
+          userId: participant.userId,
+          type: NotificationType.CHAT,
+          title: 'New chat message',
+          body: dto.body.trim().slice(0, 180),
+          resourceType: 'conversation',
+          resourceId: conversationId,
+        }),
+      ),
+    );
+
+    await this.maybeSendAssistantReplies(conversation, userId, recipients);
+    return response;
   }
 
   async assertConversationParticipant(
@@ -243,6 +256,7 @@ export class ChatService {
         participants: {
           user: {
             profile: true,
+            setting: true,
           },
         },
       },
@@ -319,5 +333,56 @@ export class ChatService {
       messageType: message.messageType,
       createdAt: message.createdAt,
     };
+  }
+
+  private async maybeSendAssistantReplies(
+    conversation: Conversation,
+    originalSenderId: string,
+    recipients: ConversationParticipant[],
+  ): Promise<void> {
+    if (conversation.type !== ConversationType.DIRECT) {
+      return;
+    }
+
+    for (const finalRecipient of recipients) {
+      const enabled = finalRecipient.user.setting?.aiAssistEnabled ?? true;
+      if (!enabled) {
+        continue;
+      }
+
+      const assistantBody = await this.aiService.generateChatAutoReply(
+        finalRecipient.userId,
+        finalRecipient.user.role,
+        conversation.id,
+      );
+
+      const assistantMessage = await this.messagesRepository.save(
+        this.messagesRepository.create({
+          conversationId: conversation.id,
+          senderId: finalRecipient.userId,
+          body: assistantBody.trim(),
+          messageType: MessageType.ASSISTANT,
+        }),
+      );
+      const hydratedAssistantMessage = await this.getMessageByIdOrFail(
+        assistantMessage.id,
+        conversation.id,
+      );
+      const response = this.toMessageResponse(hydratedAssistantMessage);
+
+      this.chatRealtimeService.broadcastToConversation(conversation.id, {
+        event: 'message_created',
+        data: response,
+      });
+
+      await this.notificationsService.createNotification({
+        userId: originalSenderId,
+        type: NotificationType.CHAT,
+        title: 'AI-assisted reply',
+        body: assistantBody.trim().slice(0, 180),
+        resourceType: 'conversation',
+        resourceId: conversation.id,
+      });
+    }
   }
 }

@@ -5,6 +5,7 @@ import { EventsModule } from '../events/events.module';
 import { Event } from '../events/entities';
 import { SponsorsModule } from '../sponsors/sponsors.module';
 import { SponsorProfile, SponsorshipOpportunity } from '../sponsors/entities';
+import { ConversationParticipant, Message } from '../chat/entities';
 import { UserProfile } from '../users/entities';
 import { VendorsModule } from '../vendors/vendors.module';
 import { VendorProfile } from '../vendors/entities';
@@ -24,6 +25,8 @@ import { AiService } from './ai.service';
       SponsorshipOpportunity,
       UserProfile,
       VendorProfile,
+      ConversationParticipant,
+      Message,
     ]),
   ],
   controllers: [AiController],

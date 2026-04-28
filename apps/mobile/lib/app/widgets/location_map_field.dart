@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class LocationSelection {
   const LocationSelection({
@@ -45,6 +46,7 @@ class LocationMapField extends StatefulWidget {
 }
 
 class _LocationMapFieldState extends State<LocationMapField> {
+  final MapController _mapController = MapController();
   late double? _latitude;
   late double? _longitude;
   late double _radiusKm;
@@ -107,64 +109,122 @@ class _LocationMapFieldState extends State<LocationMapField> {
             borderRadius: BorderRadius.circular(18),
             child: SizedBox(
               height: 240,
-              child: FlutterMap(
-                options: MapOptions(
-                  initialCenter: center,
-                  initialZoom: hasPoint ? 12.5 : widget.defaultZoom,
-                  onTap: (_, tappedPoint) {
-                    setState(() {
-                      _latitude = tappedPoint.latitude;
-                      _longitude = tappedPoint.longitude;
-                    });
-                    _emit();
-                  },
-                ),
+              child: Stack(
                 children: [
-                  TileLayer(
-                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'local.meloo.app',
-                  ),
-                  if (point != null)
-                    CircleLayer(
-                      circles: [
-                        CircleMarker(
-                          point: point,
-                          radius: _radiusKm * 1000,
-                          useRadiusInMeter: true,
-                          color: const Color(0x3313AEBF),
-                          borderColor: const Color(0xFF13AEBF),
-                          borderStrokeWidth: 2,
-                        ),
-                      ],
+                  FlutterMap(
+                    mapController: _mapController,
+                    options: MapOptions(
+                      initialCenter: center,
+                      initialZoom: hasPoint ? 12.5 : widget.defaultZoom,
+                      onTap: (_, tappedPoint) {
+                        setState(() {
+                          _latitude = tappedPoint.latitude;
+                          _longitude = tappedPoint.longitude;
+                        });
+                        _emit();
+                        _mapController.move(tappedPoint, 12.5);
+                      },
                     ),
-                  if (point != null)
-                    MarkerLayer(
-                      markers: [
-                        Marker(
-                          point: point,
-                          width: 46,
-                          height: 46,
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF132A4A),
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Color(0x2A132A4A),
-                                  blurRadius: 12,
-                                  offset: Offset(0, 6),
+                    children: [
+                      TileLayer(
+                        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'local.meloo.app',
+                      ),
+                      if (point != null)
+                        CircleLayer(
+                          circles: [
+                            CircleMarker(
+                              point: point,
+                              radius: _radiusKm * 1000,
+                              useRadiusInMeter: true,
+                              color: const Color(0x3313AEBF),
+                              borderColor: const Color(0xFF13AEBF),
+                              borderStrokeWidth: 2,
+                            ),
+                          ],
+                        ),
+                      if (point != null)
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              point: point,
+                              width: 46,
+                              height: 46,
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF132A4A),
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Color(0x2A132A4A),
+                                      blurRadius: 12,
+                                      offset: Offset(0, 6),
+                                    ),
+                                  ],
                                 ),
-                              ],
+                                child: const Icon(
+                                  Icons.place_rounded,
+                                  color: Colors.white,
+                                  size: 26,
+                                ),
+                              ),
                             ),
-                            child: const Icon(
-                              Icons.place_rounded,
-                              color: Colors.white,
-                              size: 26,
-                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Column(
+                      children: [
+                        _MapActionButton(
+                          icon: Icons.add_rounded,
+                          onTap: () => _mapController.move(
+                            _mapController.camera.center,
+                            _mapController.camera.zoom + 1,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        _MapActionButton(
+                          icon: Icons.remove_rounded,
+                          onTap: () => _mapController.move(
+                            _mapController.camera.center,
+                            _mapController.camera.zoom - 1,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        _MapActionButton(
+                          icon: Icons.my_location_rounded,
+                          onTap: () => _mapController.move(
+                            point ?? widget.defaultCenter,
+                            hasPoint ? 12.5 : widget.defaultZoom,
                           ),
                         ),
                       ],
                     ),
+                  ),
+                  const Positioned(
+                    left: 12,
+                    bottom: 12,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Color(0xCC132A4A),
+                        borderRadius: BorderRadius.all(Radius.circular(999)),
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        child: Text(
+                          'OpenStreetMap',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -185,6 +245,18 @@ class _LocationMapFieldState extends State<LocationMapField> {
             ],
           ),
           const SizedBox(height: 14),
+          if (hasPoint)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: OutlinedButton.icon(
+                onPressed: () => launchUrlString(
+                  'https://www.openstreetmap.org/?mlat=${_latitude!.toStringAsFixed(6)}&mlon=${_longitude!.toStringAsFixed(6)}#map=14/${_latitude!.toStringAsFixed(6)}/${_longitude!.toStringAsFixed(6)}',
+                  mode: LaunchMode.platformDefault,
+                ),
+                icon: const Icon(Icons.open_in_new_rounded),
+                label: const Text('Open full map'),
+              ),
+            ),
           Text(
             widget.radiusLabel,
             style: theme.textTheme.labelLarge?.copyWith(
@@ -262,6 +334,33 @@ class _InfoPill extends StatelessWidget {
         style: const TextStyle(
           color: Color(0xFF4C463F),
           fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _MapActionButton extends StatelessWidget {
+  const _MapActionButton({
+    required this.icon,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.94),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: SizedBox(
+          width: 38,
+          height: 38,
+          child: Icon(icon, size: 20, color: const Color(0xFF132A4A)),
         ),
       ),
     );

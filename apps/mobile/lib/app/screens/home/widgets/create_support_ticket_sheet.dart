@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../support/support_models.dart';
+import '../../../widgets/modal_form_scaffold.dart';
 
 class CreateSupportTicketSheet extends StatefulWidget {
   const CreateSupportTicketSheet({
@@ -56,88 +57,60 @@ class _CreateSupportTicketSheetState extends State<CreateSupportTicketSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        20,
-        20,
-        MediaQuery.of(context).viewInsets.bottom + 20,
-      ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Create support ticket',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Describe the issue clearly. The support assistant will triage it and escalate to an admin when needed.',
-                style: TextStyle(color: Color(0xFF5F645F), height: 1.5),
-              ),
-              const SizedBox(height: 20),
-              DropdownButtonFormField<String>(
-                initialValue: _category,
-                decoration: const InputDecoration(
-                  labelText: 'Category',
-                  border: OutlineInputBorder(),
+    return Form(
+      key: _formKey,
+      child: ModalFormScaffold(
+        title: 'Create support ticket',
+        subtitle:
+            'Describe the issue clearly so the assistant can triage it fast and escalate when needed.',
+        icon: Icons.support_agent_rounded,
+        actionLabel: 'Create ticket',
+        submittingLabel: 'Creating ticket...',
+        isSubmitting: widget.isSubmitting,
+        onSubmit: _submit,
+        children: [
+          ModalFormSection(
+            title: 'Issue details',
+            subtitle: 'Choose the right lane and keep the report specific.',
+            icon: Icons.report_problem_rounded,
+            child: Column(
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: _category,
+                  decoration: const InputDecoration(labelText: 'Category'),
+                  items: const [
+                    DropdownMenuItem(value: 'general', child: Text('General')),
+                    DropdownMenuItem(value: 'booking', child: Text('Booking')),
+                    DropdownMenuItem(value: 'payment', child: Text('Payment')),
+                    DropdownMenuItem(value: 'account', child: Text('Account')),
+                    DropdownMenuItem(value: 'technical', child: Text('Technical')),
+                    DropdownMenuItem(value: 'harassment', child: Text('Harassment')),
+                  ],
+                  onChanged: widget.isSubmitting
+                      ? null
+                      : (value) => setState(() => _category = value ?? 'general'),
                 ),
-                items: const [
-                  DropdownMenuItem(value: 'general', child: Text('General')),
-                  DropdownMenuItem(value: 'booking', child: Text('Booking')),
-                  DropdownMenuItem(value: 'payment', child: Text('Payment')),
-                  DropdownMenuItem(value: 'account', child: Text('Account')),
-                  DropdownMenuItem(value: 'technical', child: Text('Technical')),
-                  DropdownMenuItem(value: 'harassment', child: Text('Harassment')),
-                ],
-                onChanged: widget.isSubmitting
-                    ? null
-                    : (value) => setState(() => _category = value ?? 'general'),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _subjectController,
-                decoration: const InputDecoration(
-                  labelText: 'Subject',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _subjectController,
+                  decoration: const InputDecoration(labelText: 'Subject'),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Subject is required'
+                      : null,
                 ),
-                validator: (value) =>
-                    value == null || value.trim().isEmpty ? 'Subject is required' : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                maxLines: 5,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _descriptionController,
+                  maxLines: 5,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                  validator: (value) => value == null || value.trim().length < 20
+                      ? 'Use at least 20 characters'
+                      : null,
                 ),
-                validator: (value) => value == null || value.trim().length < 20
-                    ? 'Use at least 20 characters'
-                    : null,
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: widget.isSubmitting ? null : _submit,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: Text(
-                      widget.isSubmitting
-                          ? 'Creating ticket...'
-                          : 'Create ticket',
-                    ),
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

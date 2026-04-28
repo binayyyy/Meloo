@@ -8,16 +8,12 @@ import {
   MessageResponseDto,
   SendMessageDto,
 } from './dto';
-import { ChatRealtimeService } from './chat-realtime.service';
 import { ChatService } from './chat.service';
 
 @Controller('chat')
 @UseGuards(AccessTokenGuard)
 export class ChatController {
-  constructor(
-    private readonly chatService: ChatService,
-    private readonly chatRealtimeService: ChatRealtimeService,
-  ) {}
+  constructor(private readonly chatService: ChatService) {}
 
   @Get('conversations/my')
   listMyConversations(
@@ -48,14 +44,6 @@ export class ChatController {
     @Param('id') conversationId: string,
     @Body() dto: SendMessageDto,
   ): Promise<MessageResponseDto> {
-    return this.chatService.sendMessage(user.sub, conversationId, dto).then(
-      (message) => {
-        this.chatRealtimeService.broadcastToConversation(conversationId, {
-          event: 'message_created',
-          data: message,
-        });
-        return message;
-      },
-    );
+    return this.chatService.sendMessage(user.sub, conversationId, dto);
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../sponsors/sponsor_models.dart';
 import '../../../uploads/upload_models.dart';
+import '../../../widgets/modal_form_scaffold.dart';
 import '../../../widgets/upload_field_card.dart';
 
 class SponsorProfileSheet extends StatefulWidget {
@@ -89,89 +90,81 @@ class _SponsorProfileSheetState extends State<SponsorProfileSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        20,
-        20,
-        MediaQuery.of(context).viewInsets.bottom + 20,
-      ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                widget.initialProfile == null
-                    ? 'Create sponsor profile'
-                    : 'Edit sponsor profile',
-                style:
-                    const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'This profile helps organizers assess brand fit before they review your interest.',
-                style: TextStyle(color: Color(0xFF5F645F), height: 1.5),
-              ),
-              const SizedBox(height: 20),
-              _field(_companyNameController, 'Company name'),
-              const SizedBox(height: 16),
-              _field(_industriesController, 'Industries'),
-              const SizedBox(height: 16),
-              _field(
-                _websiteUrlController,
-                'Website',
-                keyboardType: TextInputType.url,
-                required: false,
-              ),
-              const SizedBox(height: 16),
-              UploadFieldCard(
-                label: 'Logo',
-                accessToken: widget.accessToken,
-                controller: _logoUrlController,
-                kind: UploadAssetKind.image,
-                helper:
-                    'Upload the sponsor logo used in opportunity review and profile display.',
-              ),
-              const SizedBox(height: 16),
-              UploadFieldCard(
-                label: 'Verification document',
-                accessToken: widget.accessToken,
-                controller: _verificationDocumentUrlController,
-                kind: UploadAssetKind.document,
-                helper:
-                    'Attach a company profile, capabilities deck, or registration document.',
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => value == null || value.trim().length < 20
-                    ? 'Use at least 20 characters'
-                    : null,
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: widget.isSubmitting ? null : _submit,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: Text(
-                      widget.isSubmitting ? 'Saving profile...' : 'Save profile',
-                    ),
-                  ),
-                ),
-              ),
-            ],
+    return Form(
+      key: _formKey,
+      child: ModalFormScaffold(
+        title: widget.initialProfile == null
+            ? 'Create sponsor profile'
+            : 'Edit sponsor profile',
+        subtitle:
+            'Present a sharper brand profile so organizers can assess fit, credibility, and proposal readiness quickly.',
+        icon: Icons.apartment_rounded,
+        actionLabel: 'Save profile',
+        submittingLabel: 'Saving profile...',
+        isSubmitting: widget.isSubmitting,
+        onSubmit: _submit,
+        children: [
+          const ModalFormInfoCard(
+            title: 'Brand-first presentation',
+            message:
+                'Keep the profile tight and visual. Organizers should understand category, trust signals, and website in one pass.',
+            icon: Icons.workspace_premium_rounded,
           ),
-        ),
+          ModalFormSection(
+            title: 'Company profile',
+            subtitle: 'Core brand identity and public details.',
+            icon: Icons.badge_rounded,
+            child: Column(
+              children: [
+                _field(_companyNameController, 'Company name'),
+                const SizedBox(height: 14),
+                _field(_industriesController, 'Industries'),
+                const SizedBox(height: 14),
+                _field(
+                  _websiteUrlController,
+                  'Website',
+                  keyboardType: TextInputType.url,
+                  required: false,
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _descriptionController,
+                  maxLines: 4,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                  validator: (value) => value == null || value.trim().length < 20
+                      ? 'Use at least 20 characters'
+                      : null,
+                ),
+              ],
+            ),
+          ),
+          ModalFormSection(
+            title: 'Brand assets',
+            subtitle: 'Logo and verification used in proposals and review.',
+            icon: Icons.image_rounded,
+            child: Column(
+              children: [
+                UploadFieldCard(
+                  label: 'Logo',
+                  accessToken: widget.accessToken,
+                  controller: _logoUrlController,
+                  kind: UploadAssetKind.image,
+                  helper:
+                      'Upload the sponsor logo used in opportunity review and profile display.',
+                ),
+                const SizedBox(height: 14),
+                UploadFieldCard(
+                  label: 'Verification document',
+                  accessToken: widget.accessToken,
+                  controller: _verificationDocumentUrlController,
+                  kind: UploadAssetKind.document,
+                  helper:
+                      'Attach a company profile, capabilities deck, or registration document.',
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -185,10 +178,7 @@ class _SponsorProfileSheetState extends State<SponsorProfileSheet> {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
+      decoration: InputDecoration(labelText: label),
       validator: (value) {
         if (!required) {
           return null;

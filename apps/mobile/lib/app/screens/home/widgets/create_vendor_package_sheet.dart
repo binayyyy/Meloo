@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../vendors/vendor_models.dart';
+import '../../../widgets/modal_form_scaffold.dart';
 
 class CreateVendorPackageSheet extends StatefulWidget {
   const CreateVendorPackageSheet({
@@ -48,56 +49,40 @@ class _CreateVendorPackageSheetState extends State<CreateVendorPackageSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        20,
-        20,
-        MediaQuery.of(context).viewInsets.bottom + 20,
-      ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Add package',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 16),
-              _field(_nameController, 'Package name'),
-              const SizedBox(height: 16),
-              _field(_priceController, 'Price'),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
+    return Form(
+      key: _formKey,
+      child: ModalFormScaffold(
+        title: 'Add package',
+        subtitle:
+            'Create a cleaner bundled offer with one headline price and a concise scope.',
+        icon: Icons.widgets_rounded,
+        actionLabel: 'Save package',
+        submittingLabel: 'Saving package...',
+        isSubmitting: widget.isSubmitting,
+        onSubmit: _submit,
+        children: [
+          ModalFormSection(
+            title: 'Package setup',
+            subtitle: 'Name the bundle, set the price, and explain what is covered.',
+            icon: Icons.sell_rounded,
+            child: Column(
+              children: [
+                _field(_nameController, 'Package name'),
+                const SizedBox(height: 14),
+                _field(_priceController, 'Price'),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _descriptionController,
+                  maxLines: 4,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                  validator: (value) => value == null || value.trim().length < 20
+                      ? 'Use at least 20 characters'
+                      : null,
                 ),
-                validator: (value) => value == null || value.trim().length < 20
-                    ? 'Use at least 20 characters'
-                    : null,
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: widget.isSubmitting ? null : _submit,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: Text(
-                      widget.isSubmitting ? 'Saving package...' : 'Save package',
-                    ),
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -105,10 +90,7 @@ class _CreateVendorPackageSheetState extends State<CreateVendorPackageSheet> {
   Widget _field(TextEditingController controller, String label) {
     return TextFormField(
       controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
+      decoration: InputDecoration(labelText: label),
       validator: (value) =>
           value == null || value.trim().isEmpty ? '$label is required' : null,
     );

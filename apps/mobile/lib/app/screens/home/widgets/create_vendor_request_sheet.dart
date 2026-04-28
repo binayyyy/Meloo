@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../events/event_models.dart';
 import '../../../vendors/vendor_models.dart';
+import '../../../widgets/modal_form_scaffold.dart';
 
 class CreateVendorRequestSheet extends StatefulWidget {
   const CreateVendorRequestSheet({
@@ -68,108 +69,89 @@ class _CreateVendorRequestSheetState extends State<CreateVendorRequestSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final canDirectBook = widget.vendor.bookingPreference?.allowDirectBooking == true;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        20,
-        20,
-        MediaQuery.of(context).viewInsets.bottom + 20,
-      ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Contact ${widget.vendor.businessName}',
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                canDirectBook
-                    ? 'This vendor allows direct booking. You can either send a request or book immediately.'
-                    : 'This vendor is request-based. Send the event details and a proposed budget to start the conversation.',
-                style: const TextStyle(color: Color(0xFF5F645F), height: 1.5),
-              ),
-              const SizedBox(height: 20),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedEventId,
-                decoration: const InputDecoration(
-                  labelText: 'Event',
-                  border: OutlineInputBorder(),
-                ),
-                items: widget.events
-                    .map(
-                      (event) => DropdownMenuItem<String>(
-                        value: event.id,
-                        child: Text(event.title),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: widget.isSubmitting
-                    ? null
-                    : (value) => setState(() => _selectedEventId = value),
-                validator: (value) =>
-                    value == null ? 'Choose an event first' : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _budgetController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  labelText: 'Proposed budget',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) =>
-                    value == null || value.trim().isEmpty ? 'Budget is required' : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _messageController,
-                maxLines: 5,
-                decoration: const InputDecoration(
-                  labelText: 'Message',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => value == null || value.trim().length < 20
-                    ? 'Use at least 20 characters'
-                    : null,
-              ),
-              if (canDirectBook) ...[
-                const SizedBox(height: 8),
-                SwitchListTile(
-                  value: _directBookingPreferred,
+    final canDirectBook =
+        widget.vendor.bookingPreference?.allowDirectBooking == true;
+    return Form(
+      key: _formKey,
+      child: ModalFormScaffold(
+        title: 'Contact ${widget.vendor.businessName}',
+        subtitle: canDirectBook
+            ? 'This vendor supports direct booking, so you can move from request to confirmation faster.'
+            : 'This vendor uses request review. Share the event context and budget to start the conversation.',
+        icon: Icons.handshake_rounded,
+        actionLabel:
+            canDirectBook && _directBookingPreferred ? 'Book vendor' : 'Send request',
+        submittingLabel: 'Submitting...',
+        isSubmitting: widget.isSubmitting,
+        onSubmit: _submit,
+        children: [
+          ModalFormSection(
+            title: 'Event and budget',
+            subtitle: 'Link the right event and set the working spend.',
+            icon: Icons.event_rounded,
+            child: Column(
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedEventId,
+                  decoration: const InputDecoration(labelText: 'Event'),
+                  items: widget.events
+                      .map(
+                        (event) => DropdownMenuItem<String>(
+                          value: event.id,
+                          child: Text(event.title),
+                        ),
+                      )
+                      .toList(growable: false),
                   onChanged: widget.isSubmitting
                       ? null
-                      : (value) => setState(() => _directBookingPreferred = value),
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Book directly if available'),
+                      : (value) => setState(() => _selectedEventId = value),
+                  validator: (value) =>
+                      value == null ? 'Choose an event first' : null,
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _budgetController,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'Proposed budget'),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Budget is required'
+                      : null,
                 ),
               ],
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: widget.isSubmitting ? null : _submit,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: Text(
-                      widget.isSubmitting
-                          ? 'Submitting...'
-                          : canDirectBook && _directBookingPreferred
-                              ? 'Book vendor'
-                              : 'Send request',
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+          ModalFormSection(
+            title: 'Message',
+            subtitle: 'Keep the note specific enough for a confident reply.',
+            icon: Icons.chat_bubble_outline_rounded,
+            child: Column(
+              children: [
+                TextFormField(
+                  controller: _messageController,
+                  maxLines: 5,
+                  decoration: const InputDecoration(labelText: 'Message'),
+                  validator: (value) => value == null || value.trim().length < 20
+                      ? 'Use at least 20 characters'
+                      : null,
+                ),
+                if (canDirectBook) ...[
+                  const SizedBox(height: 14),
+                  ModalFormToggleTile(
+                    title: 'Book directly if available',
+                    subtitle:
+                        'Use the vendor’s direct-booking path when the offer matches your needs.',
+                    value: _directBookingPreferred,
+                    onChanged: widget.isSubmitting
+                        ? null
+                        : (value) =>
+                              setState(() => _directBookingPreferred = value),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

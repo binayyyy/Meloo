@@ -92,128 +92,161 @@ class _PaymentResultScreenState extends State<PaymentResultScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Payment status')),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFCF8),
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: const Color(0xFFDCCFBC)),
-              ),
-              child: _isLoading
-                  ? const Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 18),
-                        Text('Verifying your Stripe payment...'),
-                      ],
-                    )
-                  : Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          _errorMessage != null
-                              ? Icons.error_outline_rounded
-                              : wasCancelled
-                                  ? Icons.payments_outlined
-                                  : Icons.check_circle_outline_rounded,
-                          size: 40,
-                          color: _errorMessage != null
-                              ? const Color(0xFFAF3D31)
-                              : wasCancelled
-                                  ? const Color(0xFFBA7B2F)
-                                  : const Color(0xFF145B52),
-                        ),
-                        const SizedBox(height: 18),
-                        Text(
-                          _errorMessage != null
-                              ? 'Payment verification failed'
-                              : wasCancelled
-                                  ? 'Stripe checkout was cancelled'
-                                  : checkout?.payment.status == 'paid'
-                                      ? 'Payment confirmed'
-                                      : 'Payment is still pending',
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
-                            height: 1.05,
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFF7F9FA),
+              Color(0xFFF0F4F7),
+            ],
+          ),
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFDCE3E8)),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x10101828),
+                      blurRadius: 22,
+                      offset: Offset(0, 12),
+                    ),
+                  ],
+                ),
+                child: _isLoading
+                    ? const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 18),
+                          Text('Verifying your Stripe payment...'),
+                        ],
+                      )
+                    : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 46,
+                            height: 46,
+                            decoration: BoxDecoration(
+                              color: (_errorMessage != null
+                                      ? const Color(0xFFAF3D31)
+                                      : wasCancelled
+                                          ? const Color(0xFF7A6A52)
+                                          : const Color(0xFF2F6B57))
+                                  .withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Icon(
+                              _errorMessage != null
+                                  ? Icons.error_outline_rounded
+                                  : wasCancelled
+                                      ? Icons.payments_outlined
+                                      : Icons.check_circle_outline_rounded,
+                              size: 24,
+                              color: _errorMessage != null
+                                  ? const Color(0xFFAF3D31)
+                                  : wasCancelled
+                                      ? const Color(0xFF7A6A52)
+                                      : const Color(0xFF2F6B57),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          _errorMessage ??
-                              (wasCancelled
-                                  ? 'You can return to the event and try checkout again whenever you are ready.'
-                                  : checkout?.payment.status == 'paid'
-                                      ? 'Your booking is confirmed and the event is now available in your payment history.'
-                                      : 'Stripe did not report a paid session yet. If you just completed checkout, wait a moment and retry.'),
-                          style: const TextStyle(
-                            color: Color(0xFF5E5A54),
-                            height: 1.55,
+                          const SizedBox(height: 16),
+                          Text(
+                            _errorMessage != null
+                                ? 'Payment verification failed'
+                                : wasCancelled
+                                    ? 'Stripe checkout was cancelled'
+                                    : checkout?.payment.status == 'paid'
+                                        ? 'Payment confirmed'
+                                        : 'Payment is still pending',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              height: 1.08,
+                            ),
                           ),
-                        ),
-                        if (checkout != null) ...[
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 10),
+                          Text(
+                            _errorMessage ??
+                                (wasCancelled
+                                    ? 'You can return to the event and try checkout again whenever you are ready.'
+                                    : checkout?.payment.status == 'paid'
+                                        ? 'Your booking is confirmed and the event is now available in your payment history.'
+                                        : 'Stripe did not report a paid session yet. If you just completed checkout, wait a moment and retry.'),
+                            style: const TextStyle(
+                              color: Color(0xFF66717D),
+                              fontSize: 13,
+                              height: 1.55,
+                            ),
+                          ),
+                          if (checkout != null) ...[
+                            const SizedBox(height: 18),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
+                              children: [
+                                _pill('Status ${checkout.payment.status}'),
+                                _pill(
+                                  '${checkout.payment.currency} ${checkout.payment.amount}',
+                                ),
+                                _pill(checkout.registration.ticketType.name),
+                              ],
+                            ),
+                          ],
+                          const SizedBox(height: 24),
                           Wrap(
-                            spacing: 10,
-                            runSpacing: 10,
+                            spacing: 12,
+                            runSpacing: 12,
                             children: [
-                              _pill('Status ${checkout.payment.status}'),
-                              _pill(
-                                '${checkout.payment.currency} ${checkout.payment.amount}',
+                              FilledButton(
+                                onPressed: () {
+                                  if (widget.args.eventId != null) {
+                                    Navigator.of(context).pushNamedAndRemoveUntil(
+                                      AppRouter.eventDetail,
+                                      (route) => route.settings.name == AppRouter.home,
+                                      arguments: EventDetailScreenArgs(
+                                        eventId: widget.args.eventId!,
+                                        manageMode: false,
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  Navigator.of(context).pushNamedAndRemoveUntil(
+                                    AppRouter.home,
+                                    (route) => false,
+                                  );
+                                },
+                                child: Text(
+                                  widget.args.eventId != null
+                                      ? 'Back to event'
+                                      : 'Back to home',
+                                ),
                               ),
-                              _pill(checkout.registration.ticketType.name),
+                              OutlinedButton(
+                                onPressed: () => Navigator.of(context)
+                                    .pushNamedAndRemoveUntil(
+                                  AppRouter.home,
+                                  (route) => false,
+                                ),
+                                child: const Text('Dashboard'),
+                              ),
                             ],
                           ),
                         ],
-                        const SizedBox(height: 24),
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: [
-                            FilledButton(
-                              onPressed: () {
-                                if (widget.args.eventId != null) {
-                                  Navigator.of(context).pushNamedAndRemoveUntil(
-                                    AppRouter.eventDetail,
-                                    (route) => route.settings.name == AppRouter.home,
-                                    arguments: EventDetailScreenArgs(
-                                      eventId: widget.args.eventId!,
-                                      manageMode: false,
-                                    ),
-                                  );
-                                  return;
-                                }
-                                Navigator.of(context).pushNamedAndRemoveUntil(
-                                  AppRouter.home,
-                                  (route) => false,
-                                );
-                              },
-                              child: Text(
-                                widget.args.eventId != null
-                                    ? 'Back to event'
-                                    : 'Back to home',
-                              ),
-                            ),
-                            OutlinedButton(
-                              onPressed: () => Navigator.of(context)
-                                  .pushNamedAndRemoveUntil(
-                                AppRouter.home,
-                                (route) => false,
-                              ),
-                              child: const Text('Go to dashboard'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                      ),
+              ),
             ),
           ),
         ),
@@ -225,9 +258,9 @@ class _PaymentResultScreenState extends State<PaymentResultScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF2ECE1),
+        color: const Color(0xFFF1F4F7),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFE2D8C9)),
+        border: Border.all(color: const Color(0xFFDCE3E8)),
       ),
       child: Text(
         label,

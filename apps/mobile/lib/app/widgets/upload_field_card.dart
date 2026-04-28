@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -31,6 +32,7 @@ class _UploadFieldCardState extends State<UploadFieldCard> {
   final UploadsApiClient _uploadsApiClient = UploadsApiClient();
   bool _isUploading = false;
   UploadedAssetModel? _uploadedAsset;
+  PlatformFile? _selectedFile;
 
   @override
   void initState() {
@@ -76,6 +78,7 @@ class _UploadFieldCardState extends State<UploadFieldCard> {
 
     setState(() => _isUploading = true);
     try {
+      _selectedFile = picked.files.single;
       final asset = await _uploadsApiClient.uploadFile(
         accessToken: widget.accessToken,
         file: picked.files.single,
@@ -106,6 +109,8 @@ class _UploadFieldCardState extends State<UploadFieldCard> {
   @override
   Widget build(BuildContext context) {
     final currentValue = widget.controller.text.trim();
+    final selectedBytes = _selectedPreviewBytes;
+    final selectedName = _selectedFile?.name;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -132,6 +137,20 @@ class _UploadFieldCardState extends State<UploadFieldCard> {
             ),
           ],
         ),
+        if (selectedName != null) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _UploadMetaPill(label: selectedName),
+              if (_selectedFile?.size != null)
+                _UploadMetaPill(label: _formatBytes(_selectedFile!.size)),
+              if (_uploadedAsset != null)
+                const _UploadMetaPill(label: 'uploaded'),
+            ],
+          ),
+        ],
         if (widget.helper != null) ...[
           const SizedBox(height: 6),
           Text(
@@ -159,24 +178,31 @@ class _UploadFieldCardState extends State<UploadFieldCard> {
           if (widget.kind == UploadAssetKind.image)
             ClipRRect(
               borderRadius: BorderRadius.circular(18),
-              child: Image.network(
-                currentValue,
-                height: widget.previewHeight,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: widget.previewHeight,
-                    width: double.infinity,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF4ECE0),
-                      borderRadius: BorderRadius.circular(18),
+              child: selectedBytes != null
+                  ? Image.memory(
+                      selectedBytes,
+                      height: widget.previewHeight,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    )
+                  : Image.network(
+                      currentValue,
+                      height: widget.previewHeight,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: widget.previewHeight,
+                          width: double.infinity,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF4ECE0),
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: const Text('Preview unavailable for this image'),
+                        );
+                      },
                     ),
-                    child: const Text('Preview unavailable for this image'),
-                  );
-                },
-              ),
             )
           else
             Container(
@@ -215,6 +241,49 @@ class _UploadFieldCardState extends State<UploadFieldCard> {
             ),
         ],
       ],
+    );
+  }
+
+  Uint8List? get _selectedPreviewBytes {
+    final file = _selectedFile;
+    if (file == null || widget.kind != UploadAssetKind.image) {
+      return null;
+    }
+    return file.bytes;
+  }
+
+  String _formatBytes(int bytes) {
+    if (bytes < 1024) {
+      return '$bytes B';
+    }
+    if (bytes < 1024 * 1024) {
+      return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    }
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+}
+
+class _UploadMetaPill extends StatelessWidget {
+  const _UploadMetaPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5EEE2),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFE1D4C2)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Color(0xFF5F645F),
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }

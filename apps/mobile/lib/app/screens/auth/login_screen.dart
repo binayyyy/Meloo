@@ -51,9 +51,9 @@ class _LoginScreenState extends State<LoginScreen> {
     final authController = AuthScope.of(context);
 
     return AuthScaffold(
-      eyebrow: 'Meloo access',
+      eyebrow: 'Workspace access',
       title: 'Sign in',
-      subtitle: 'Sign in to your Meloo workspace.',
+      subtitle: 'Continue into your Meloo workspace.',
       highlights: const [
         'Attendee',
         'Organizer',
@@ -134,9 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 2),
                       child: Text(
-                        authController.isLoading
-                            ? 'Signing in...'
-                            : 'Continue to Meloo',
+                        authController.isLoading ? 'Signing in...' : 'Sign in',
                       ),
                     ),
                   ),
