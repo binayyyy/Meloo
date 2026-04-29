@@ -42,6 +42,11 @@ export class SupportService {
     const assistant = await this.aiService.generateSupportAssistance(
       dto.category,
       dto.description,
+      {
+        requesterId: userId,
+        actingRole: Role.ADMIN,
+        subject: dto.subject,
+      },
     );
 
     const ticket = await this.supportTicketsRepository.save(

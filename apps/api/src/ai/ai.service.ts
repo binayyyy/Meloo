@@ -22,6 +22,8 @@ import { UserProfile } from '../users/entities';
 import { VendorProfile } from '../vendors/entities';
 import { VendorsService } from '../vendors/vendors.service';
 import { AiGatewayService } from './ai-gateway.service';
+import { AiContextService } from './ai-context.service';
+import { AiHarnessService } from './ai-harness.service';
 import {
   hasCoordinates,
   haversineDistanceKm,
@@ -38,6 +40,8 @@ type ConversationAiContext = {
 export class AiService {
   constructor(
     private readonly aiGatewayService: AiGatewayService,
+    private readonly aiHarnessService: AiHarnessService,
+    private readonly aiContextService: AiContextService,
     private readonly eventsService: EventsService,
     private readonly vendorsService: VendorsService,
     private readonly sponsorsService: SponsorsService,
@@ -60,21 +64,19 @@ export class AiService {
   async generateSupportAssistance(
     category: string | undefined,
     message: string,
+    options?: {
+      requesterId?: string;
+      actingRole?: Role;
+      subject?: string;
+    },
   ): Promise<AiSupportResponseDto> {
-    const modelResponse = await this.aiGatewayService.generateJson<AiSupportResponseDto>([
-      {
-        role: 'system',
-        content:
-          'You are an event-platform support triage assistant. Return strict JSON with keys: suggestion, confidence, priority, shouldEscalate, escalationReason. Confidence must be a string decimal from 0.00 to 1.00. Priority must be one of urgent, high, medium, low. Only escalate for payment, harassment, safety, refund/dispute, or explicit human-request cases.',
-      },
-      {
-        role: 'user',
-        content: JSON.stringify({
-          category: category ?? null,
-          message,
-        }),
-      },
-    ]);
+    const modelResponse = await this.aiHarnessService.generateSupportTriage({
+      requesterId: options?.requesterId,
+      actingRole: options?.actingRole,
+      category,
+      subject: options?.subject,
+      message,
+    });
 
     if (modelResponse != null) {
       return {
@@ -289,6 +291,8 @@ export class AiService {
     role: Role,
     dto: AiAssistantDraftRequestDto,
   ): Promise<AiAssistantDraftResponseDto> {
+    await this.aiContextService.requireAiActor(userId, role);
+
     switch (dto.intent) {
       case AiAssistantDraftIntent.CHAT_REPLY: {
         if (dto.conversationId == null) {
@@ -297,14 +301,23 @@ export class AiService {
 
         return {
           intent: dto.intent,
-          title: 'AI reply draft',
-          content: await this.generateConversationDraft(
-            userId,
-            role,
-            dto.conversationId,
-            dto.prompt,
-            'Draft a concise reply for the user to send next. Keep it natural, specific, and under 120 words. Do not use markdown.',
-          ),
+          title: 'AI message draft',
+          content:
+            (await this.aiHarnessService.generateChatDraft({
+              userId,
+              role,
+              conversationId: dto.conversationId,
+              prompt: dto.prompt,
+              intent: dto.intent,
+              eventId: dto.eventId,
+            })) ??
+            (await this.generateConversationDraft(
+              userId,
+              role,
+              dto.conversationId,
+              dto.prompt,
+              'Draft a concise reply for the user to send next. Keep it natural, specific, and under 120 words. Do not use markdown.',
+            )),
         };
       }
       case AiAssistantDraftIntent.ORGANIZER_PLAN: {
@@ -318,26 +331,48 @@ export class AiService {
         return {
           intent: dto.intent,
           title: 'Vendor proposal draft',
-          content: await this.generateProposalDraft(
-            userId,
-            role,
-            dto,
-            Role.VENDOR,
-            'Draft a vendor proposal that can be sent directly in chat. Be concrete about scope, availability assumptions, pricing posture, and the next step. Keep it under 170 words and do not use markdown.',
-          ),
+          content:
+            (dto.conversationId != null
+              ? await this.aiHarnessService.generateChatDraft({
+                  userId,
+                  role,
+                  conversationId: dto.conversationId,
+                  prompt: dto.prompt,
+                  intent: dto.intent,
+                  eventId: dto.eventId,
+                })
+              : null) ??
+            (await this.generateProposalDraft(
+              userId,
+              role,
+              dto,
+              Role.VENDOR,
+              'Draft a vendor proposal that can be sent directly in chat. Be concrete about scope, availability assumptions, pricing posture, and the next step. Keep it under 170 words and do not use markdown.',
+            )),
         };
       }
       case AiAssistantDraftIntent.SPONSOR_PROPOSAL: {
         return {
           intent: dto.intent,
           title: 'Sponsor proposal draft',
-          content: await this.generateProposalDraft(
-            userId,
-            role,
-            dto,
-            Role.SPONSOR,
-            'Draft a sponsor outreach or response proposal that can be sent directly in chat. Focus on audience fit, activation value, and a clear next step. Keep it under 170 words and do not use markdown.',
-          ),
+          content:
+            (dto.conversationId != null
+              ? await this.aiHarnessService.generateChatDraft({
+                  userId,
+                  role,
+                  conversationId: dto.conversationId,
+                  prompt: dto.prompt,
+                  intent: dto.intent,
+                  eventId: dto.eventId,
+                })
+              : null) ??
+            (await this.generateProposalDraft(
+              userId,
+              role,
+              dto,
+              Role.SPONSOR,
+              'Draft a sponsor outreach or response proposal that can be sent directly in chat. Focus on audience fit, activation value, and a clear next step. Keep it under 170 words and do not use markdown.',
+            )),
         };
       }
     }
@@ -363,21 +398,12 @@ export class AiService {
     role: Role,
     dto: PlanningAssistantRequestDto,
   ): Promise<PlanningAssistantResponseDto> {
-    let event: Event | null = null;
-    if (dto.eventId != null) {
-      event = await this.eventsRepository.findOne({
-        where: { id: dto.eventId },
-        relations: { category: true },
-      });
-
-      if (!event) {
-        throw new NotFoundException('Event not found');
-      }
-
-      if (role !== Role.ADMIN && event.organizerId !== requesterId) {
-        throw new ForbiddenException('You cannot generate a planning brief for this event');
-      }
-    }
+    const planningContext = await this.aiContextService.buildPlanningContext(
+      requesterId,
+      role,
+      dto,
+    );
+    const event = planningContext.event;
 
     const categoryName = event?.category.name ?? 'general';
     const city = event?.city ?? 'your target city';
@@ -402,15 +428,13 @@ export class AiService {
       timelineMilestones,
     );
 
-    const modelResponse =
-      await this.aiGatewayService.generateJson<PlanningAssistantResponseDto>([
+    const modelResponse = await this.aiHarnessService.buildPlanningRuntimeContext(
+      requesterId,
+      role,
+      [
+        ...planningContext.sections,
         {
-          role: 'system',
-          content:
-            'You are an event-planning copilot for organizers. Return strict JSON with keys: overview, checklist, vendorCategories, timelineMilestones, sponsorshipAngles, budgetGuidance, operationalRisks. Each list should contain concise, practical bullets for a real production event workflow.',
-        },
-        {
-          role: 'user',
+          label: 'Planning seed',
           content: JSON.stringify({
             eventTitle: event?.title ?? null,
             categoryName,
@@ -422,7 +446,10 @@ export class AiService {
             seededTimelineMilestones: timelineMilestones,
           }),
         },
-      ]);
+      ],
+      'Generate the planning brief as structured JSON.',
+      planningContext.cacheScope,
+    );
 
     if (modelResponse == null) {
       return fallback;

@@ -259,7 +259,7 @@ export class AdminService {
       ai: {
         configured: aiConfigured,
         detail: aiConfigured
-          ? 'Local AI gateway is configured'
+          ? 'AI gateway is configured'
           : 'AI is disabled or missing provider settings',
         enabled: aiEnabled,
         provider: aiConfig.provider ?? 'unknown',

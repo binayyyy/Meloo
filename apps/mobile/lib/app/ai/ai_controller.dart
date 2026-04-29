@@ -35,12 +35,6 @@ class AiController extends SafeChangeNotifier {
     notifyListeners();
 
     try {
-      final futures = <Future<dynamic>>[
-        _apiClient.fetchEventRecommendations(
-          accessToken: session.tokens.accessToken,
-        ),
-      ];
-
       final shouldLoadVendorRecommendations =
           (session.user.role == UserRole.organizer ||
                   session.user.role == UserRole.admin) &&
@@ -48,39 +42,41 @@ class AiController extends SafeChangeNotifier {
       final shouldLoadOpportunityRecommendations =
           session.user.role == UserRole.sponsor ||
               session.user.role == UserRole.admin;
+      final failures = <String>[];
 
-      if (shouldLoadVendorRecommendations) {
-        futures.add(
-          _apiClient.fetchVendorRecommendations(
-            accessToken: session.tokens.accessToken,
-            eventId: organizerEventId,
-          ),
-        );
-      }
+      _recommendedEvents = await _safeLoad(
+        () => _apiClient.fetchEventRecommendations(
+          accessToken: session.tokens.accessToken,
+        ),
+        fallback: const <AiEventRecommendationModel>[],
+        failures: failures,
+        label: 'event recommendations',
+      );
+      _recommendedVendors = shouldLoadVendorRecommendations
+          ? await _safeLoad(
+              () => _apiClient.fetchVendorRecommendations(
+                accessToken: session.tokens.accessToken,
+                eventId: organizerEventId,
+              ),
+              fallback: const <AiVendorRecommendationModel>[],
+              failures: failures,
+              label: 'vendor recommendations',
+            )
+          : const [];
+      _recommendedOpportunities = shouldLoadOpportunityRecommendations
+          ? await _safeLoad(
+              () => _apiClient.fetchOpportunityRecommendations(
+                accessToken: session.tokens.accessToken,
+              ),
+              fallback: const <AiOpportunityRecommendationModel>[],
+              failures: failures,
+              label: 'sponsor recommendations',
+            )
+          : const [];
 
-      if (shouldLoadOpportunityRecommendations) {
-        futures.add(
-          _apiClient.fetchOpportunityRecommendations(
-            accessToken: session.tokens.accessToken,
-          ),
-        );
-      }
-
-      final results = await Future.wait(futures);
-      _recommendedEvents = results[0] as List<AiEventRecommendationModel>;
-      var nextIndex = 1;
-      if (shouldLoadVendorRecommendations) {
-        _recommendedVendors = results[nextIndex] as List<AiVendorRecommendationModel>;
-        nextIndex += 1;
-      } else {
-        _recommendedVendors = const [];
-      }
-      if (shouldLoadOpportunityRecommendations) {
-        _recommendedOpportunities =
-            results[nextIndex] as List<AiOpportunityRecommendationModel>;
-      } else {
-        _recommendedOpportunities = const [];
-      }
+      _errorMessage = failures.isEmpty
+          ? null
+          : 'Some AI panels are unavailable right now: ${failures.join(', ')}.';
     } catch (error) {
       _errorMessage = error.toString();
     } finally {
@@ -114,6 +110,20 @@ class AiController extends SafeChangeNotifier {
     } finally {
       _isPlanning = false;
       notifyListeners();
+    }
+  }
+
+  Future<T> _safeLoad<T>(
+    Future<T> Function() loader, {
+    required T fallback,
+    required List<String> failures,
+    required String label,
+  }) async {
+    try {
+      return await loader();
+    } catch (_) {
+      failures.add(label);
+      return fallback;
     }
   }
 }

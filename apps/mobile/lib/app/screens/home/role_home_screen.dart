@@ -57,7 +57,7 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
   String _eventSearch = '';
   String? _selectedCategorySlug;
   String? _loadedForAccessToken;
-  bool _didPresentDemoSheet = false;
+  bool _didPresentEntrySheet = false;
 
   @override
   void didChangeDependencies() {
@@ -71,7 +71,7 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
       _loadedForAccessToken = accessToken;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          _loadAll(session).then((_) => _maybePresentDemoSheet(session));
+          _loadAll(session).then((_) => _maybePresentEntrySheet(session));
         }
       });
     }
@@ -91,44 +91,55 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
   }
 
   Future<void> _loadAll(AuthSession session) async {
-    await _eventsController.load(session);
+    await _runSafe(() => _eventsController.load(session));
 
     await Future.wait([
-      _chatController.load(session),
-      _notificationsController.load(session),
+      _runSafe(() => _chatController.load(session)),
+      _runSafe(() => _notificationsController.load(session)),
       if (session.user.role == UserRole.attendee)
-        _paymentsController.load(session),
-      _supportController.load(session),
-      _sponsorsController.load(session),
+        _runSafe(() => _paymentsController.load(session)),
+      _runSafe(() => _supportController.load(session)),
+      _runSafe(() => _sponsorsController.load(session)),
     ]);
 
     final organizerFocusEvent = _eventsController.myEvents.isNotEmpty
         ? _eventsController.myEvents.first
         : null;
-    await _vendorsController.load(session, focusEvent: organizerFocusEvent);
-    await _aiController.load(
-      session,
-      organizerEventId: organizerFocusEvent?.id,
+    await _runSafe(
+      () => _vendorsController.load(session, focusEvent: organizerFocusEvent),
+    );
+    await _runSafe(
+      () => _aiController.load(
+        session,
+        organizerEventId: organizerFocusEvent?.id,
+      ),
     );
   }
 
-  Future<void> _maybePresentDemoSheet(AuthSession session) async {
-    if (_didPresentDemoSheet) {
+  Future<void> _runSafe(Future<void> Function() action) async {
+    try {
+      await action();
+    } catch (_) {
+    }
+  }
+
+  Future<void> _maybePresentEntrySheet(AuthSession session) async {
+    if (_didPresentEntrySheet) {
       return;
     }
 
-    final demoSheet = Uri.base.queryParameters['demo_sheet'];
-    if (demoSheet == null || demoSheet.isEmpty) {
+    final entrySheet = Uri.base.queryParameters['entry_sheet'];
+    if (entrySheet == null || entrySheet.isEmpty) {
       return;
     }
 
-    _didPresentDemoSheet = true;
+    _didPresentEntrySheet = true;
     await Future<void>.delayed(const Duration(milliseconds: 1200));
     if (!mounted) {
       return;
     }
 
-    switch (demoSheet) {
+    switch (entrySheet) {
       case 'create-event':
         await _openCreateEventSheet(session);
         return;
@@ -762,7 +773,7 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
                   messages: _chatController.activeMessages,
                   currentUserId: session.user.id,
                   currentUserRole: session.user.role,
-                  aiAssistEnabled: session.user.settings?.aiAssistEnabled ?? true,
+                  aiAssistEnabled: session.user.settings?.aiAssistEnabled ?? false,
                   isLoading: _chatController.isOpeningConversation,
                   isSending: _chatController.isSending,
                   isDrafting: _chatController.isDrafting,
@@ -813,19 +824,21 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
 
     final navigation = _navigationForRole(user.role)[_selectedTab];
     final heroMetrics = _summaryMetricsForSelectedTab(user.role);
+    final palette = _paletteForRole(user.role);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F5F7),
+      backgroundColor: palette.canvasTop,
       appBar: AppBar(
         toolbarHeight: 70,
         titleSpacing: 18,
+        backgroundColor: palette.canvasTop,
         title: Row(
           children: [
-            const MelooBrandMark(
+            MelooBrandMark(
               size: 32,
               padding: 7,
               borderRadius: 11,
-              backgroundColor: Color(0xFFF8FAFB),
+              backgroundColor: palette.surface,
               showBorder: true,
             ),
             const SizedBox(width: 10),
@@ -839,8 +852,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
                 const SizedBox(height: 1),
                 Text(
                   navigation.label,
-                  style: const TextStyle(
-                    color: Color(0xFF6B7280),
+                  style: TextStyle(
+                    color: palette.support,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
@@ -850,6 +863,28 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
           ],
         ),
         actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: palette.surface,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: palette.accent.withValues(alpha: 0.16),
+                ),
+              ),
+              child: Text(
+                _workspaceLabelForRole(user.role),
+                style: TextStyle(
+                  color: palette.accent,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 2),
             child: Badge(
@@ -882,8 +917,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
         },
         height: 66,
         labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-        backgroundColor: Colors.white,
-        indicatorColor: const Color(0x162F6B57),
+        backgroundColor: palette.surface,
+        indicatorColor: palette.accent.withValues(alpha: 0.12),
         destinations: _navigationForRole(user.role)
             .map(
               (item) => NavigationDestination(
@@ -960,29 +995,57 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
           ],
         ),
       ),
-      child: RefreshIndicator(
-        onRefresh: () => _loadAll(session),
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(18, 12, 18, 108),
-          children: [
-            _HeroCard(
-              roleLabel: _workspaceLabelForRole(user.role),
-              headline: navigation.headline,
-              supporting: navigation.description,
-              metrics: heroMetrics,
-              palette: palette,
+      child: Stack(
+        children: [
+          Positioned(
+            top: -70,
+            right: -30,
+            child: Container(
+              width: 220,
+              height: 220,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: palette.accent.withValues(alpha: 0.08),
+              ),
             ),
-            const SizedBox(height: 12),
-            _RoleLeadPanel(
-              title: _panelTitleForSelectedTab(),
-              actions: _quickActionsForRole(session, user.role),
-              signals: _signalsForSelectedTab(user.role),
-              palette: palette,
+          ),
+          Positioned(
+            left: -60,
+            bottom: 90,
+            child: Container(
+              width: 180,
+              height: 180,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: palette.support.withValues(alpha: 0.08),
+              ),
             ),
-            ..._buildSystemBanners(),
-            ...sections,
-          ],
-        ),
+          ),
+          RefreshIndicator(
+            onRefresh: () => _loadAll(session),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 108),
+              children: [
+                _HeroCard(
+                  roleLabel: _workspaceLabelForRole(user.role),
+                  headline: navigation.headline,
+                  supporting: navigation.description,
+                  metrics: heroMetrics,
+                  palette: palette,
+                ),
+                const SizedBox(height: 12),
+                _RoleLeadPanel(
+                  title: _panelTitleForSelectedTab(),
+                  actions: _quickActionsForRole(session, user.role),
+                  signals: _signalsForSelectedTab(user.role),
+                  palette: palette,
+                ),
+                ..._buildSystemBanners(),
+                ...sections,
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1049,7 +1112,7 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
 
   String userProfileAiValue(UserRole role) {
     final session = AuthScope.of(context).session;
-    final enabled = session?.user.settings?.aiAssistEnabled ?? true;
+    final enabled = session?.user.settings?.aiAssistEnabled ?? false;
     return enabled ? 'On' : 'Off';
   }
 
@@ -1108,38 +1171,43 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
     switch (role) {
       case UserRole.attendee:
         return const _RolePalette(
-          canvasTop: Color(0xFFF6F8F9),
-          canvasBottom: Color(0xFFE8EDF1),
-          accent: Color(0xFF355C7D),
-          support: Color(0xFF6C8B9E),
+          canvasTop: Color(0xFFF7F3EB),
+          canvasBottom: Color(0xFFEDE5D8),
+          surface: Color(0xFFFFFBF5),
+          accent: Color(0xFF8A6738),
+          support: Color(0xFF9B8158),
         );
       case UserRole.organizer:
         return const _RolePalette(
-          canvasTop: Color(0xFFF5F8F5),
-          canvasBottom: Color(0xFFE7EFE9),
+          canvasTop: Color(0xFFF3F7F3),
+          canvasBottom: Color(0xFFE3ECE5),
+          surface: Color(0xFFFDFEFB),
           accent: Color(0xFF2F6B57),
-          support: Color(0xFF5F8776),
+          support: Color(0xFF6D8B7C),
         );
       case UserRole.vendor:
         return const _RolePalette(
-          canvasTop: Color(0xFFF8F6F2),
-          canvasBottom: Color(0xFFEDE7DF),
-          accent: Color(0xFF775B3A),
-          support: Color(0xFF8D7962),
+          canvasTop: Color(0xFFF8F3EE),
+          canvasBottom: Color(0xFFEDE3D7),
+          surface: Color(0xFFFFFBF7),
+          accent: Color(0xFF7C5938),
+          support: Color(0xFF967258),
         );
       case UserRole.sponsor:
         return const _RolePalette(
-          canvasTop: Color(0xFFF6F7FA),
-          canvasBottom: Color(0xFFE7EBF2),
-          accent: Color(0xFF4C5F7A),
-          support: Color(0xFF7A8596),
+          canvasTop: Color(0xFFF5F6FA),
+          canvasBottom: Color(0xFFE5EAF1),
+          surface: Color(0xFFFCFCFE),
+          accent: Color(0xFF536781),
+          support: Color(0xFF7F8A9A),
         );
       case UserRole.admin:
         return const _RolePalette(
-          canvasTop: Color(0xFFF5F7F9),
-          canvasBottom: Color(0xFFE5EAF0),
+          canvasTop: Color(0xFFF2F5F8),
+          canvasBottom: Color(0xFFE4EAF0),
+          surface: Color(0xFFFDFEFF),
           accent: Color(0xFF324A5F),
-          support: Color(0xFF5B7184),
+          support: Color(0xFF62788A),
         );
     }
   }
@@ -1266,34 +1334,6 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
     ];
   }
 
-  List<_LeadSignal> _organizerMarketSignals(UserRole role) {
-    return [
-      _LeadSignal(
-        label: 'Public',
-        value: _eventsController.publicEvents.length.toString(),
-        note: 'Live event supply',
-        icon: role == UserRole.admin
-            ? Icons.public_rounded
-            : Icons.stream_rounded,
-        color: const Color(0xFF145B52),
-      ),
-      _LeadSignal(
-        label: 'Vendors',
-        value: _vendorsController.publicVendors.length.toString(),
-        note: 'Bookable supply',
-        icon: Icons.storefront_rounded,
-        color: const Color(0xFF4B5B77),
-      ),
-      _LeadSignal(
-        label: 'Sponsors',
-        value: _sponsorsController.openOpportunities.length.toString(),
-        note: 'Open sponsor slots',
-        icon: Icons.campaign_rounded,
-        color: const Color(0xFFB26B2D),
-      ),
-    ];
-  }
-
   List<_LeadSignal> _organizerStudioSignals(UserRole role) {
     return [
       _LeadSignal(
@@ -1347,32 +1387,6 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
     ];
   }
 
-  List<_LeadSignal> _vendorMarketSignals() {
-    return [
-      _LeadSignal(
-        label: 'Events',
-        value: _eventsController.publicEvents.length.toString(),
-        note: 'Demand to target',
-        icon: Icons.radar_rounded,
-        color: const Color(0xFF6B5078),
-      ),
-      _LeadSignal(
-        label: 'Requests',
-        value: _vendorsController.myVendorRequests.length.toString(),
-        note: 'Inbound briefs',
-        icon: Icons.inbox_rounded,
-        color: const Color(0xFF145B52),
-      ),
-      _LeadSignal(
-        label: 'Rating',
-        value: _vendorsController.myVendorProfile?.ratingAverage ?? '0.00',
-        note: 'Public reputation',
-        icon: Icons.star_rounded,
-        color: const Color(0xFFBA7B2F),
-      ),
-    ];
-  }
-
   List<_LeadSignal> _vendorWorkSignals() {
     return [
       _LeadSignal(
@@ -1400,34 +1414,6 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
             .toString(),
         note: 'Active deals',
         icon: Icons.task_alt_rounded,
-        color: const Color(0xFF145B52),
-      ),
-    ];
-  }
-
-  List<_LeadSignal> _sponsorMarketSignals() {
-    return [
-      _LeadSignal(
-        label: 'Open',
-        value: _sponsorsController.openOpportunities.length.toString(),
-        note: 'Sponsor asks live',
-        icon: Icons.workspace_premium_rounded,
-        color: const Color(0xFFB26B2D),
-      ),
-      _LeadSignal(
-        label: 'Matches',
-        value: _aiController.recommendedOpportunities.length.toString(),
-        note: 'AI-ranked fit',
-        icon: Icons.auto_graph_rounded,
-        color: const Color(0xFF8B5526),
-      ),
-      _LeadSignal(
-        label: 'Verified',
-        value: _sponsorsController.mySponsorProfile?.verified == true
-            ? 'Yes'
-            : 'No',
-        note: 'Brand readiness',
-        icon: Icons.verified_rounded,
         color: const Color(0xFF145B52),
       ),
     ];
@@ -1573,8 +1559,6 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
         ];
       case UserRole.organizer:
         return [
-          const SizedBox(height: 16),
-          _SignalStrip(signals: _organizerMarketSignals(user.role)),
           if (_vendorsController.publicVendors.isNotEmpty) ...[
             const SizedBox(height: 16),
             _SectionCard(
@@ -1694,8 +1678,6 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
         ];
       case UserRole.admin:
         return [
-          const SizedBox(height: 16),
-          _SignalStrip(signals: _adminReviewSignals()),
           if (featuredEvent != null) ...[
             const SizedBox(height: 16),
             _FeaturedEventPanel(
@@ -1781,8 +1763,6 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
         ];
       case UserRole.vendor:
         return [
-          const SizedBox(height: 16),
-          _SignalStrip(signals: _vendorMarketSignals()),
           if (featuredEvent != null) ...[
             const SizedBox(height: 16),
             _FeaturedEventPanel(
@@ -1828,8 +1808,6 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
         ];
       case UserRole.sponsor:
         return [
-          const SizedBox(height: 16),
-          _SignalStrip(signals: _sponsorMarketSignals()),
           if (_aiController.recommendedOpportunities.isNotEmpty) ...[
             const SizedBox(height: 16),
             _SectionCard(
@@ -1911,8 +1889,6 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
       case UserRole.attendee:
         return [
           const SizedBox(height: 16),
-          _SignalStrip(signals: _attendeePlanSignals()),
-          const SizedBox(height: 16),
           _SectionCard(
             title: 'My plans',
             accent: const Color(0xFF145B52),
@@ -1987,8 +1963,6 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
         ];
       case UserRole.organizer:
         return [
-          const SizedBox(height: 16),
-          _SignalStrip(signals: _organizerStudioSignals(user.role)),
           if (_canCreateEvents(user.role)) ...[
             const SizedBox(height: 16),
             _SectionCard(
@@ -2117,8 +2091,6 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
       case UserRole.admin:
         return [
           const SizedBox(height: 16),
-          _SignalStrip(signals: _adminReviewSignals()),
-          const SizedBox(height: 16),
           _SectionCard(
             title: 'Platform review',
             accent: const Color(0xFF173B63),
@@ -2191,8 +2163,6 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
         ];
       case UserRole.vendor:
         return [
-          const SizedBox(height: 16),
-          _SignalStrip(signals: _vendorWorkSignals()),
           const SizedBox(height: 16),
           _SectionCard(
             title: 'Business profile',
@@ -2270,8 +2240,6 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
         ];
       case UserRole.sponsor:
         return [
-          const SizedBox(height: 16),
-          _SignalStrip(signals: _sponsorDealSignals()),
           const SizedBox(height: 16),
           _SectionCard(
             title: 'Brand profile',
@@ -3287,12 +3255,14 @@ class _RolePalette {
   const _RolePalette({
     required this.canvasTop,
     required this.canvasBottom,
+    required this.surface,
     required this.accent,
     required this.support,
   });
 
   final Color canvasTop;
   final Color canvasBottom;
+  final Color surface;
   final Color accent;
   final Color support;
 }
@@ -4825,7 +4795,7 @@ class _ConversationCard extends StatelessWidget {
                       ),
                       if (lastMessage?.isAssistant == true)
                         const _StatusChip(
-                          label: 'AI reply',
+                          label: 'AI draft',
                           color: Color(0xFF4F5BD5),
                         ),
                       _MetaLabel(label: _formatCompactTimestamp(activityTime)),
@@ -5307,7 +5277,7 @@ class _ChatConversationSheetState extends State<_ChatConversationSheet> {
                             const SizedBox(height: 6),
                             Text(
                               widget.aiAssistEnabled
-                                  ? 'Direct thread with AI-assisted replies enabled'
+                                  ? 'Direct thread with AI drafting available'
                                   : 'Direct thread',
                               style: const TextStyle(
                                 color: Color(0xFFE8F0EE),
@@ -5471,7 +5441,7 @@ class _ChatConversationSheetState extends State<_ChatConversationSheet> {
                               widget.isDrafting
                                   ? 'Drafting...'
                                   : intent == AiAssistantDraftIntent.chatReply
-                                      ? 'AI reply draft'
+                                      ? 'AI message draft'
                                       : 'AI proposal draft',
                             ),
                           ),

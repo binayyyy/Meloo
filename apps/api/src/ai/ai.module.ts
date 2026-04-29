@@ -6,12 +6,18 @@ import { Event } from '../events/entities';
 import { SponsorsModule } from '../sponsors/sponsors.module';
 import { SponsorProfile, SponsorshipOpportunity } from '../sponsors/entities';
 import { ConversationParticipant, Message } from '../chat/entities';
-import { UserProfile } from '../users/entities';
+import { SupportTicket } from '../support/entities';
+import { User, UserProfile } from '../users/entities';
 import { VendorsModule } from '../vendors/vendors.module';
 import { VendorProfile } from '../vendors/entities';
 import { AiController } from './ai.controller';
+import { AiContextService } from './ai-context.service';
 import { AiGatewayService } from './ai-gateway.service';
+import { AiHarnessService } from './ai-harness.service';
+import { AiMemoryService } from './ai-memory.service';
+import { AiPolicyService } from './ai-policy.service';
 import { AiService } from './ai.service';
+import { AiContextDocument, AiResponseCache } from './entities';
 
 @Module({
   imports: [
@@ -24,13 +30,24 @@ import { AiService } from './ai.service';
       SponsorProfile,
       SponsorshipOpportunity,
       UserProfile,
+      User,
       VendorProfile,
+      SupportTicket,
       ConversationParticipant,
       Message,
+      AiContextDocument,
+      AiResponseCache,
     ]),
   ],
   controllers: [AiController],
-  providers: [AiService, AiGatewayService],
+  providers: [
+    AiService,
+    AiGatewayService,
+    AiMemoryService,
+    AiContextService,
+    AiPolicyService,
+    AiHarnessService,
+  ],
   exports: [AiService],
 })
 export class AiModule {}

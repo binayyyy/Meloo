@@ -14,7 +14,7 @@ class WorkflowPageScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F5F7),
+      backgroundColor: const Color(0xFFF6F2EC),
       appBar: AppBar(
         toolbarHeight: 68,
         titleSpacing: 8,
@@ -32,10 +32,7 @@ class WorkflowPageScaffold extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFF3F5F7),
-              Color(0xFFEFF3F6),
-            ],
+            colors: [Color(0xFFF6F2EC), Color(0xFFEEF2F5)],
           ),
         ),
         child: SafeArea(
@@ -50,7 +47,7 @@ class WorkflowPageScaffold extends StatelessWidget {
                   height: 220,
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Color(0x10355C7D),
+                    color: Color(0x144D6278),
                   ),
                 ),
               ),
@@ -62,7 +59,7 @@ class WorkflowPageScaffold extends StatelessWidget {
                   height: 240,
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Color(0x0A2E4A62),
+                    color: Color(0x10C89C5D),
                   ),
                 ),
               ),

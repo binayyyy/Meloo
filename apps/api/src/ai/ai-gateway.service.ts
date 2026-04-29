@@ -6,16 +6,28 @@ type ChatMessage = {
   content: string;
 };
 
+type AiGatewayOptions = {
+  temperature?: number;
+};
+
 @Injectable()
 export class AiGatewayService {
   private readonly logger = new Logger(AiGatewayService.name);
 
   constructor(private readonly configService: ConfigService) {}
 
+  getRuntimeInfo(): { provider: string; model: string } {
+    return {
+      provider: this.configService.get<string>('ai.provider') ?? 'ollama',
+      model: this.configService.get<string>('ai.model') ?? 'llama3.2:latest',
+    };
+  }
+
   async generateJson<T>(
     messages: ChatMessage[],
+    options?: AiGatewayOptions,
   ): Promise<T | null> {
-    const content = await this.generateContent(messages, true);
+    const content = await this.generateContent(messages, true, options);
     if (content == null) {
       return null;
     }
@@ -30,8 +42,11 @@ export class AiGatewayService {
     }
   }
 
-  async generateText(messages: ChatMessage[]): Promise<string | null> {
-    const content = await this.generateContent(messages, false);
+  async generateText(
+    messages: ChatMessage[],
+    options?: AiGatewayOptions,
+  ): Promise<string | null> {
+    const content = await this.generateContent(messages, false, options);
     if (content == null) {
       return null;
     }
@@ -43,6 +58,7 @@ export class AiGatewayService {
   private async generateContent(
     messages: ChatMessage[],
     expectsJson: boolean,
+    options?: AiGatewayOptions,
   ): Promise<string | null> {
     const enabled = this.configService.get<boolean>('ai.enabled') ?? true;
     if (!enabled) {
@@ -53,7 +69,11 @@ export class AiGatewayService {
     const baseUrl = this.configService.get<string>('ai.baseUrl') ?? 'http://127.0.0.1:11434';
     const model = this.configService.get<string>('ai.model') ?? 'llama3.2:latest';
     const apiKey = this.configService.get<string>('ai.apiKey') ?? '';
-    const timeoutMs = this.configService.get<number>('ai.timeoutMs') ?? 25_000;
+    const timeoutMs = this.configService.get<number>('ai.timeoutMs') ?? 300_000;
+    const temperature =
+      options?.temperature ??
+      this.configService.get<number>('ai.temperature') ??
+      0.2;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -72,7 +92,7 @@ export class AiGatewayService {
             headers,
             body: JSON.stringify({
               model,
-              temperature: 0.2,
+              temperature,
               ...(expectsJson ? { response_format: { type: 'json_object' } } : {}),
               messages,
             }),
@@ -84,6 +104,7 @@ export class AiGatewayService {
             body: JSON.stringify({
               model,
               stream: false,
+              temperature,
               ...(expectsJson ? { format: 'json' } : {}),
               messages,
             }),

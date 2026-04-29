@@ -65,7 +65,7 @@ class UserSettingsModel {
         json['privacyLevel'],
         fallback: 'contacts_only',
       ),
-      aiAssistEnabled: boolValue(json['aiAssistEnabled'], fallback: true),
+      aiAssistEnabled: boolValue(json['aiAssistEnabled']),
     );
   }
 

@@ -54,10 +54,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       eyebrow: 'Password reset',
       title: 'Reset password',
       subtitle:
-          'Request a reset for your Meloo account. Local builds still expose the debug token for testing.',
+          'Request a reset for your Meloo account and continue the recovery flow from your email or support team.',
       highlights: const [
         'Secure reset',
-        'Debug token in local',
+        'Protected recovery flow',
       ],
       footer: Align(
         alignment: Alignment.centerLeft,
@@ -75,9 +75,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               children: [
                 if (_result != null)
                   AuthStatusBanner(
-                    message: _result!.debugResetToken == null
-                        ? _result!.message
-                        : '${_result!.message}\n\nDebug token: ${_result!.debugResetToken}',
+                    message: _result!.message,
                     color: const Color(0xFF0E6B5C),
                   ),
                 if (authController.errorMessage != null)

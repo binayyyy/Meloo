@@ -146,7 +146,7 @@ class AuthController extends SafeChangeNotifier {
     notifyListeners();
   }
 
-  void bootstrapDemoSession(AuthSession session) {
+  void bootstrapSession(AuthSession session) {
     _session = session;
     _status = AuthStatus.authenticated;
     _errorMessage = null;

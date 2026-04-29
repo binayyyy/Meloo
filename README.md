@@ -3,8 +3,8 @@
 Meloo is a multi-surface event platform with:
 
 - a NestJS API
-- a Next.js admin client
-- a Flutter app for attendee, organizer, vendor, sponsor, and admin flows
+- a Next.js internal admin console
+- a Flutter app for attendee, organizer, vendor, and sponsor workflows
 
 ## Stack
 
@@ -12,6 +12,13 @@ Meloo is a multi-surface event platform with:
 - Admin: Next.js
 - App: Flutter
 - Database: PostgreSQL with PostGIS-ready Docker runtime
+
+## Product Model
+
+- Admin is internal-only and intended for desktop use.
+- Public roles are mobile-first: `attendee`, `organizer`, `vendor`, and `sponsor`.
+- Chat drafting is AI-assisted and role-aware.
+- Distance-aware matching uses map coordinates and radius controls for events and vendors.
 
 ## Run With Docker
 
@@ -27,7 +34,7 @@ docker compose up --build
 - Admin: `http://localhost:3001`
 - API: `http://127.0.0.1:3000/api`
 
-The compose setup starts PostgreSQL, the API, the admin client, and the demo seed job.
+The compose setup starts PostgreSQL, the API, the admin client, and the local seed job.
 
 ## Run Locally
 
@@ -54,14 +61,32 @@ npm run dev:api
 npm run dev:admin
 ```
 
-6. Start the Flutter app:
+6. Start the Flutter app on a native target or desktop QA target:
 
 ```bash
 cd apps/mobile
-flutter run -d chrome --dart-define=API_BASE_URL=http://127.0.0.1:3000/api
+flutter run -d linux --dart-define=API_BASE_URL=http://127.0.0.1:3000/api
 ```
 
-## Demo Accounts
+Use `flutter devices` to pick an Android or iOS device when available. The public app is mobile-only at runtime and should not be treated as a web surface.
+
+## Local AI
+
+Meloo can run against a local Ollama model for:
+
+- chat reply drafting across roles
+- organizer planning assistance
+- admin support triage
+
+Default local wiring in `.env.example` targets Ollama on `http://127.0.0.1:11434`.
+
+## Maps And Matching
+
+- Events store location and vendor match radius.
+- Vendor profiles store base location and travel radius.
+- Organizer and admin discovery flows use coordinates and distance-aware ranking instead of city label matching alone.
+
+## Seeded Local Accounts
 
 - `admin@meloo.local`
 - `organizer@meloo.local`

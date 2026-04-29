@@ -55,7 +55,7 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
     );
     _notificationsEnabled = widget.user.settings?.notificationsEnabled ?? true;
     _marketingEnabled = widget.user.settings?.marketingEnabled ?? false;
-    _aiAssistEnabled = widget.user.settings?.aiAssistEnabled ?? true;
+    _aiAssistEnabled = widget.user.settings?.aiAssistEnabled ?? false;
     _privacyLevel = widget.user.settings?.privacyLevel ?? 'community';
   }
 
@@ -220,7 +220,7 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
                 contentPadding: EdgeInsets.zero,
                 title: const Text('AI assist'),
                 subtitle: const Text(
-                  'Enables AI drafting and automatic chat replies for this profile.',
+                  'Enables manual AI drafting inside supported workflows.',
                 ),
                 value: _aiAssistEnabled,
                 onChanged: isSubmitting

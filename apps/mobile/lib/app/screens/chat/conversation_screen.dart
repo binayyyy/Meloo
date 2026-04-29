@@ -229,7 +229,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                   ),
                   SizedBox(width: 6),
                   Text(
-                    'AI assist',
+                    'Draft assist',
                     style: TextStyle(
                       color: Color(0xFF2E4A62),
                       fontSize: 12,
@@ -247,6 +247,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
             _ConversationHeader(
               title: widget.title,
               aiAssistEnabled: widget.aiAssistEnabled,
+              currentUserRole: widget.currentUserRole,
             ),
             const SizedBox(height: 12),
             Expanded(
@@ -269,11 +270,11 @@ class _ConversationScreenState extends State<ConversationScreen> {
                       child: widget.isLoading
                           ? const Center(child: CircularProgressIndicator())
                           : widget.messages.isEmpty
-                              ? const Center(
+                              ? Center(
                                   child: Padding(
                                     padding: EdgeInsets.symmetric(horizontal: 28),
                                     child: Text(
-                                      'No messages yet. Start with a specific next step or share a file to move the thread forward.',
+                                      _emptyStateText(),
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: Color(0xFF66717D),
@@ -311,6 +312,40 @@ class _ConversationScreenState extends State<ConversationScreen> {
                       ),
                       child: Column(
                         children: [
+                          if (widget.aiAssistEnabled) ...[
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: _availableDrafts
+                                    .map(
+                                      (intent) => FilledButton.tonalIcon(
+                                        onPressed: widget.isDrafting ||
+                                                widget.isSending ||
+                                                _isUploadingAttachment
+                                            ? null
+                                            : () => _requestDraft(intent),
+                                        icon: widget.isDrafting
+                                            ? const SizedBox(
+                                                width: 14,
+                                                height: 14,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                ),
+                                              )
+                                            : const Icon(
+                                                Icons.auto_awesome_rounded,
+                                                size: 16,
+                                              ),
+                                        label: Text(_labelForDraft(intent)),
+                                      ),
+                                    )
+                                    .toList(growable: false),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
                           if (_isUploadingAttachment)
                             Container(
                               width: double.infinity,
@@ -370,39 +405,14 @@ class _ConversationScreenState extends State<ConversationScreen> {
                                   icon: const Icon(Icons.attach_file_rounded),
                                   tooltip: 'Share file',
                                 ),
-                                if (widget.aiAssistEnabled)
-                                  PopupMenuButton<AiAssistantDraftIntent>(
-                                    enabled:
-                                        !widget.isDrafting && !widget.isSending,
-                                    tooltip: 'AI drafts',
-                                    icon: widget.isDrafting
-                                        ? const SizedBox(
-                                            width: 18,
-                                            height: 18,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                            ),
-                                          )
-                                        : const Icon(Icons.auto_awesome_rounded),
-                                    onSelected: _requestDraft,
-                                    itemBuilder: (context) => _availableDrafts
-                                        .map(
-                                          (intent) => PopupMenuItem(
-                                            value: intent,
-                                            child: Text(_labelForDraft(intent)),
-                                          ),
-                                        )
-                                        .toList(growable: false),
-                                  ),
                                 Expanded(
                                   child: TextField(
                                     controller: _messageController,
                                     minLines: 1,
                                     maxLines: 5,
                                     textInputAction: TextInputAction.newline,
-                                    decoration: const InputDecoration(
-                                      hintText:
-                                          'Message, note, or attachment caption',
+                                    decoration: InputDecoration(
+                                      hintText: _composerHintText(),
                                       border: InputBorder.none,
                                       isDense: true,
                                       filled: false,
@@ -466,16 +476,48 @@ class _ConversationScreenState extends State<ConversationScreen> {
         return 'Sponsor proposal';
     }
   }
+
+  String _emptyStateText() {
+    switch (widget.currentUserRole) {
+      case UserRole.organizer:
+        return 'No messages yet. Open with the next event decision, vendor ask, or sponsor step you want to move.';
+      case UserRole.vendor:
+        return 'No messages yet. Start with scope, availability, or the exact service step you want to confirm.';
+      case UserRole.sponsor:
+        return 'No messages yet. Start with audience fit, activation goals, or the commercial next step.';
+      case UserRole.admin:
+        return 'No messages yet. Start with the operational action, trust call, or support decision that needs to move.';
+      case UserRole.attendee:
+        return 'No messages yet. Start with the exact question or next step you need help with.';
+    }
+  }
+
+  String _composerHintText() {
+    switch (widget.currentUserRole) {
+      case UserRole.organizer:
+        return 'Write the next event, vendor, or sponsor step';
+      case UserRole.vendor:
+        return 'Write scope, availability, pricing posture, or a next step';
+      case UserRole.sponsor:
+        return 'Write fit, activation value, or the next commercial step';
+      case UserRole.admin:
+        return 'Write the operational response or moderation action';
+      case UserRole.attendee:
+        return 'Write your message, note, or attachment caption';
+    }
+  }
 }
 
 class _ConversationHeader extends StatelessWidget {
   const _ConversationHeader({
     required this.title,
     required this.aiAssistEnabled,
+    required this.currentUserRole,
   });
 
   final String title;
   final bool aiAssistEnabled;
+  final UserRole currentUserRole;
 
   @override
   Widget build(BuildContext context) {
@@ -530,8 +572,8 @@ class _ConversationHeader extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   aiAssistEnabled
-                      ? 'Direct thread with AI-assisted drafting and replies'
-                      : 'Direct thread',
+                      ? '${_roleLabel(currentUserRole)} thread with drafting assist'
+                      : '${_roleLabel(currentUserRole)} thread',
                   style: const TextStyle(
                     color: Color(0xFFDDE6EE),
                     fontSize: 12,
@@ -544,6 +586,21 @@ class _ConversationHeader extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _roleLabel(UserRole role) {
+    switch (role) {
+      case UserRole.organizer:
+        return 'Organizer';
+      case UserRole.vendor:
+        return 'Vendor';
+      case UserRole.sponsor:
+        return 'Sponsor';
+      case UserRole.admin:
+        return 'Admin';
+      case UserRole.attendee:
+        return 'Attendee';
+    }
   }
 }
 
@@ -597,7 +654,7 @@ class _ConversationBubble extends StatelessWidget {
                   Expanded(
                     child: Text(
                       message.isAssistant
-                          ? '${message.sender.displayName} AI'
+                          ? '${message.sender.displayName} draft'
                           : message.sender.displayName,
                       style: TextStyle(
                         fontSize: 12,
@@ -611,7 +668,7 @@ class _ConversationBubble extends StatelessWidget {
                     ),
                   ),
                   if (message.isAssistant)
-                    const _AiChip(label: 'AI'),
+                    const _AiChip(label: 'Draft'),
                 ],
               ),
               const SizedBox(height: 8),

@@ -36,7 +36,7 @@ class EventDetailScreen extends StatefulWidget {
 class _EventDetailScreenState extends State<EventDetailScreen> {
   final EventDetailController _controller = EventDetailController();
   String? _loadedToken;
-  bool _didPresentDemoSheet = false;
+  bool _didPresentEntrySheet = false;
 
   @override
   void didChangeDependencies() {
@@ -53,7 +53,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             session: session,
             eventId: widget.args.eventId,
             manageMode: widget.args.manageMode,
-          ).then((_) => _maybePresentDemoSheet(session));
+          ).then((_) => _maybePresentEntrySheet(session));
         }
       });
     }
@@ -197,23 +197,23 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     ).toString();
   }
 
-  Future<void> _maybePresentDemoSheet(AuthSession session) async {
-    if (_didPresentDemoSheet) {
+  Future<void> _maybePresentEntrySheet(AuthSession session) async {
+    if (_didPresentEntrySheet) {
       return;
     }
 
-    final demoSheet = Uri.base.queryParameters['demo_sheet'];
-    if (demoSheet == null || demoSheet.isEmpty) {
+    final entrySheet = Uri.base.queryParameters['entry_sheet'];
+    if (entrySheet == null || entrySheet.isEmpty) {
       return;
     }
 
-    _didPresentDemoSheet = true;
+    _didPresentEntrySheet = true;
     await Future<void>.delayed(const Duration(milliseconds: 1200));
     if (!mounted) {
       return;
     }
 
-    switch (demoSheet) {
+    switch (entrySheet) {
       case 'create-ticket':
         if (widget.args.manageMode) {
           await _openCreateTicketSheet(session);
@@ -706,7 +706,7 @@ class _EventMapCard extends StatelessWidget {
               children: [
                 TileLayer(
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'local.meloo.app',
+                  userAgentPackageName: 'com.smarteventhub.meloo',
                 ),
                 if (radiusKm != null && radiusKm > 0)
                   CircleLayer(

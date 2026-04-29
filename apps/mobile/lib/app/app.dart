@@ -18,7 +18,7 @@ class SmartEventMobileApp extends StatefulWidget {
 
 class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
   late final AppRouter _router;
-  String? _lastDemoNavigationSignature;
+  String? _lastEntryNavigationSignature;
 
   @override
   void initState() {
@@ -46,17 +46,17 @@ class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
     }
 
     final queryParameters = Uri.base.queryParameters;
-    final demoRoute = queryParameters['demo_route'];
+    final entryRoute = queryParameters['entry_route'];
 
     if (!widget.authController.isAuthenticated) {
-      final routeName = switch (demoRoute) {
+      final routeName = switch (entryRoute) {
         'signup' => AppRouter.signUp,
         'forgot-password' => AppRouter.forgotPassword,
         _ => AppRouter.login,
       };
 
       navigator.pushNamedAndRemoveUntil(routeName, (route) => false);
-      _lastDemoNavigationSignature = routeName;
+      _lastEntryNavigationSignature = routeName;
       return;
     }
 
@@ -70,8 +70,8 @@ class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
         'payment:$paymentResult:$paymentSessionId:$eventId';
     if ((paymentResult == 'success' || paymentResult == 'cancel') &&
         paymentSessionId != null &&
-        _lastDemoNavigationSignature != paymentSignature) {
-      _lastDemoNavigationSignature = paymentSignature;
+        _lastEntryNavigationSignature != paymentSignature) {
+      _lastEntryNavigationSignature = paymentSignature;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final currentNavigator = _router.navigatorKey.currentState;
         if (!mounted || currentNavigator == null) {
@@ -89,11 +89,11 @@ class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
       return;
     }
 
-    final signature = '$demoRoute:$eventId:$manageMode';
-    if (demoRoute == 'event-detail' &&
+    final signature = '$entryRoute:$eventId:$manageMode';
+    if (entryRoute == 'event-detail' &&
         eventId != null &&
-        _lastDemoNavigationSignature != signature) {
-      _lastDemoNavigationSignature = signature;
+        _lastEntryNavigationSignature != signature) {
+      _lastEntryNavigationSignature = signature;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final currentNavigator = _router.navigatorKey.currentState;
         if (!mounted || currentNavigator == null) {
@@ -110,7 +110,7 @@ class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
       return;
     }
 
-    _lastDemoNavigationSignature = AppRouter.home;
+    _lastEntryNavigationSignature = AppRouter.home;
   }
 
   @override

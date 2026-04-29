@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import type { AdminViewer } from '../lib/admin-session';
 
 type EventCategory = {
   id: string;
@@ -205,10 +206,6 @@ type AdminDashboardState = {
   activity: AdminActivityItem[];
 };
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3000/api';
-const TOKEN_STORAGE_KEY = 'melo-admin-token';
-
 const NAV_ITEMS = [
   { id: 'overview', label: 'Overview' },
   { id: 'users', label: 'Users' },
@@ -223,8 +220,10 @@ export type AdminSection = (typeof NAV_ITEMS)[number]['id'];
 
 export function AdminConsole({
   activeSection = 'overview',
+  viewer,
 }: {
   activeSection?: AdminSection;
+  viewer: AdminViewer;
 }) {
   const [publicState, setPublicState] = useState<PublicDashboardState>({
     categories: [],
@@ -247,12 +246,6 @@ export function AdminConsole({
   const [isAdminLoading, setIsAdminLoading] = useState(false);
   const [publicError, setPublicError] = useState<string | null>(null);
   const [adminError, setAdminError] = useState<string | null>(null);
-  const [adminEmailInput, setAdminEmailInput] = useState(
-    'admin@meloo.local',
-  );
-  const [adminPasswordInput, setAdminPasswordInput] = useState('Password123!');
-  const [adminTokenInput, setAdminTokenInput] = useState('');
-  const [adminToken, setAdminToken] = useState('');
   const [isMutating, setIsMutating] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategorySlug, setNewCategorySlug] = useState('');
@@ -260,12 +253,7 @@ export function AdminConsole({
   const [assetFile, setAssetFile] = useState<File | null>(null);
   const [isUploadingAsset, setIsUploadingAsset] = useState(false);
   const [uploadedAsset, setUploadedAsset] = useState<UploadedAsset | null>(null);
-
-  useEffect(() => {
-    const storedToken = window.localStorage.getItem(TOKEN_STORAGE_KEY) ?? '';
-    setAdminToken(storedToken);
-    setAdminTokenInput(storedToken);
-  }, []);
+  const adminToken = 'session';
 
   useEffect(() => {
     let cancelled = false;
@@ -302,27 +290,11 @@ export function AdminConsole({
     let cancelled = false;
 
     async function loadAdmin() {
-      if (!adminToken) {
-        setAdminState({
-          overview: null,
-          pendingVendors: [],
-          pendingSponsors: [],
-          moderationEvents: [],
-          supportTickets: [],
-          escalations: [],
-          users: [],
-          systemHealth: null,
-          activity: [],
-        });
-        setAdminError(null);
-        return;
-      }
-
       setIsAdminLoading(true);
       setAdminError(null);
 
       try {
-        const state = await loadAdminState(adminToken);
+        const state = await loadAdminState();
         if (!cancelled) {
           setAdminState(state);
         }
@@ -343,17 +315,14 @@ export function AdminConsole({
     return () => {
       cancelled = true;
     };
-  }, [adminToken]);
+  }, []);
 
   async function refreshPublicState() {
     setPublicState(await loadPublicState());
   }
 
   async function refreshAdminState() {
-    if (!adminToken) {
-      return;
-    }
-    setAdminState(await loadAdminState(adminToken));
+    setAdminState(await loadAdminState());
   }
 
   async function runAdminMutation(callback: () => Promise<void>) {
@@ -371,48 +340,20 @@ export function AdminConsole({
     }
   }
 
-  function saveToken() {
-    const nextToken = adminTokenInput.trim();
-    window.localStorage.setItem(TOKEN_STORAGE_KEY, nextToken);
-    setAdminToken(nextToken);
-  }
-
-  function clearToken() {
-    window.localStorage.removeItem(TOKEN_STORAGE_KEY);
-    setAdminToken('');
-    setAdminTokenInput('');
-  }
-
-  async function loginAdmin() {
-    if (!adminEmailInput.trim() || !adminPasswordInput) {
-      setAdminError('Admin email and password are required.');
-      return;
-    }
-
+  async function signOutAdmin() {
     setIsMutating(true);
     setAdminError(null);
     try {
-      const response = await postPublicJson<{
-        user: { role: string };
-        tokens: { accessToken: string };
-      }>('/auth/login', {
-        email: adminEmailInput.trim(),
-        password: adminPasswordInput,
+      const response = await fetch('/api/session', {
+        method: 'DELETE',
       });
-
-      if (response.user.role !== 'admin') {
-        throw new Error('This account is not an admin account.');
+      if (!response.ok) {
+        throw new Error('Sign-out failed.');
       }
-
-      window.localStorage.setItem(
-        TOKEN_STORAGE_KEY,
-        response.tokens.accessToken,
-      );
-      setAdminToken(response.tokens.accessToken);
-      setAdminTokenInput(response.tokens.accessToken);
+      window.location.href = '/login';
     } catch (error) {
       setAdminError(
-        error instanceof Error ? error.message : 'Admin login failed.',
+        error instanceof Error ? error.message : 'Sign-out failed.',
       );
     } finally {
       setIsMutating(false);
@@ -420,11 +361,6 @@ export function AdminConsole({
   }
 
   async function uploadAsset() {
-    if (!adminToken) {
-      setAdminError('Add an admin token before uploading assets.');
-      return;
-    }
-
     if (!assetFile) {
       setAdminError('Choose a file before uploading.');
       return;
@@ -434,8 +370,7 @@ export function AdminConsole({
     setAdminError(null);
     try {
       const uploaded = await postAdminUpload(
-        assetKind === 'image' ? '/uploads/images' : '/uploads/documents',
-        adminToken,
+        assetKind,
         assetFile,
       );
       setUploadedAsset(uploaded);
@@ -457,10 +392,6 @@ export function AdminConsole({
   }
 
   async function createCategory() {
-    if (!adminToken) {
-      setAdminError('Add an admin token before creating categories.');
-      return;
-    }
     if (!newCategoryName.trim() || !newCategorySlug.trim()) {
       setAdminError('Category name and slug are required.');
       return;
@@ -469,7 +400,7 @@ export function AdminConsole({
     setIsMutating(true);
     setAdminError(null);
     try {
-      await postAdminJson('/admin/event-categories', adminToken, {
+      await postAdminJson('/event-categories', {
         name: newCategoryName.trim(),
         slug: newCategorySlug.trim(),
       });
@@ -568,42 +499,22 @@ export function AdminConsole({
           <PanelHeader
             eyebrow="Access"
             title="Admin session"
-            detail="Use the internal admin account or a saved bearer token."
+            detail="Validated desktop session for operations, trust, and review."
           />
           <div className="panel-stack">
-            <input
-              className="field-input"
-              type="email"
-              value={adminEmailInput}
-              placeholder="admin@meloo.local"
-              onChange={(event) => setAdminEmailInput(event.target.value)}
-            />
-            <input
-              className="field-input"
-              type="password"
-              value={adminPasswordInput}
-              placeholder="Admin password"
-              onChange={(event) => setAdminPasswordInput(event.target.value)}
-            />
-            <div className="button-row">
-              <button className="button button-primary" onClick={loginAdmin}>
-                {isMutating ? 'Working...' : 'Admin login'}
-              </button>
+            <div className="session-card">
+              <strong>{viewer.profile?.fullName || viewer.email}</strong>
+              <span>{viewer.email}</span>
+              <span className={`table-badge ${statusToneClass(viewer.status)}`}>
+                {viewer.status}
+              </span>
             </div>
-            <div className="field-divider" />
-            <input
-              className="field-input"
-              type="password"
-              value={adminTokenInput}
-              placeholder="Paste Meloo admin bearer token"
-              onChange={(event) => setAdminTokenInput(event.target.value)}
-            />
             <div className="button-row">
-              <button className="button button-primary" onClick={saveToken}>
-                Save token
-              </button>
-              <button className="button button-secondary" onClick={clearToken}>
-                Clear
+              <button
+                className="button button-secondary"
+                onClick={() => void signOutAdmin()}
+              >
+                {isMutating ? 'Closing session...' : 'Sign out'}
               </button>
             </div>
           </div>
@@ -615,10 +526,7 @@ export function AdminConsole({
             title="Real file uploads"
             detail="Upload live assets and reuse the returned URLs anywhere in Meloo."
           />
-          {!adminToken ? (
-            <EmptyState text="Add an admin token to upload assets." />
-          ) : (
-            <div className="panel-stack">
+          <div className="panel-stack">
               <label className="field-label" htmlFor="asset-kind">
                 Upload lane
               </label>
@@ -687,7 +595,6 @@ export function AdminConsole({
                 </div>
               ) : null}
             </div>
-          )}
         </section>
 
         <section className="sidebar-panel">
@@ -712,10 +619,7 @@ export function AdminConsole({
             title="Category desk"
             detail="Manage public event categories."
           />
-          {!adminToken ? (
-            <EmptyState text="Add an admin token to create categories." />
-          ) : (
-            <div className="panel-stack">
+          <div className="panel-stack">
               <input
                 className="field-input"
                 type="text"
@@ -742,7 +646,6 @@ export function AdminConsole({
                 ))}
               </div>
             </div>
-          )}
         </section>
       </aside>
 
@@ -757,9 +660,9 @@ export function AdminConsole({
           </div>
           <div className="topbar-actions">
             <span className={`status-dot ${adminToken ? 'online' : 'offline'}`}>
-              {adminToken ? 'Admin unlocked' : 'Read-only snapshot'}
+              {adminToken ? 'Session active' : 'Session offline'}
             </span>
-            <span className="status-chip">API {API_BASE_URL}</span>
+            <span className="status-chip">{viewer.role} access</span>
           </div>
         </header>
 
@@ -779,7 +682,7 @@ export function AdminConsole({
           />
           <div className="overview-grid">
             {overviewCards.length === 0 ? (
-              <LockedPanel text="Add an admin token to load internal metrics." />
+              <LockedPanel text="Internal metrics are loading." />
             ) : (
               overviewCards.map((card) => (
                 <article key={card.label} className="metric-card">
@@ -854,7 +757,7 @@ export function AdminConsole({
             detail="Manage account state, sessions, and trust visibility."
           />
           {!adminToken ? (
-            <LockedPanel text="Add an admin token to manage users and sessions." />
+            <LockedPanel text="Account controls are loading." />
           ) : (
             <Panel
               eyebrow="Accounts"
@@ -1039,7 +942,7 @@ export function AdminConsole({
             detail="Review vendor and sponsor trust queues."
           />
           {!adminToken ? (
-            <LockedPanel text="Add an admin token to review vendor and sponsor trust queues." />
+            <LockedPanel text="Trust queues are loading." />
           ) : (
             <div className="split-grid">
               <Panel
@@ -1184,7 +1087,7 @@ export function AdminConsole({
             detail="Run the support desk and escalation queue."
           />
           {!adminToken ? (
-            <LockedPanel text="Add an admin token to manage support and escalations." />
+            <LockedPanel text="Support queues are loading." />
           ) : (
             <div className="split-grid">
               <Panel
@@ -1292,7 +1195,7 @@ export function AdminConsole({
             detail="Publish, draft, and cancel events."
           />
           {!adminToken ? (
-            <LockedPanel text="Add an admin token to moderate events." />
+            <LockedPanel text="Moderation controls are loading." />
           ) : (
             <Panel
               eyebrow="Events"
@@ -1377,7 +1280,7 @@ export function AdminConsole({
             detail="Live infrastructure and configuration state from the running API."
           />
           {!adminToken ? (
-            <LockedPanel text="Add an admin token to inspect system health." />
+            <LockedPanel text="System health is loading." />
           ) : (
             <div className="split-grid">
               <Panel
@@ -1388,8 +1291,8 @@ export function AdminConsole({
                 {adminState.systemHealth ? (
                   <div className="system-grid">
                     <SystemCard
-                      label="Environment"
-                      value={adminState.systemHealth.nodeEnv}
+                      label="Runtime"
+                      value="Operational"
                       meta={`API prefix ${adminState.systemHealth.apiPrefix}`}
                     />
                     <SystemCard
@@ -1424,7 +1327,7 @@ export function AdminConsole({
                   <div className="queue-list">
                     <article className="queue-card">
                       <div>
-                        <strong>Local AI</strong>
+                        <strong>AI operations</strong>
                         <span>
                           {adminState.systemHealth.ai.provider} • {adminState.systemHealth.ai.model}
                         </span>
@@ -1472,7 +1375,7 @@ export function AdminConsole({
             detail="Recent user, session, event, support, and escalation activity from live records."
           />
           {!adminToken ? (
-            <LockedPanel text="Add an admin token to inspect the activity stream." />
+            <LockedPanel text="Activity stream is loading." />
           ) : (
             <Panel
               eyebrow="Activity"
@@ -1514,10 +1417,6 @@ export function AdminConsole({
   );
 }
 
-export default function HomePage() {
-  return <AdminConsole activeSection="overview" />;
-}
-
 async function loadPublicState(): Promise<PublicDashboardState> {
   const [categories, publicEvents, vendors, opportunities] = await Promise.all([
     fetchJson<EventCategory[]>('/event-categories'),
@@ -1534,7 +1433,7 @@ async function loadPublicState(): Promise<PublicDashboardState> {
   };
 }
 
-async function loadAdminState(token: string): Promise<AdminDashboardState> {
+async function loadAdminState(): Promise<AdminDashboardState> {
   const [
     overview,
     pendingVendors,
@@ -1546,15 +1445,15 @@ async function loadAdminState(token: string): Promise<AdminDashboardState> {
     systemHealth,
     activity,
   ] = await Promise.all([
-    fetchAdminJson<AdminOverview>('/admin/overview', token),
-    fetchAdminJson<VendorItem[]>('/admin/vendors/pending', token),
-    fetchAdminJson<SponsorItem[]>('/admin/sponsors/pending', token),
-    fetchAdminJson<EventItem[]>('/admin/events', token),
-    fetchAdminJson<SupportTicket[]>('/admin/support/tickets', token),
-    fetchAdminJson<EscalationItem[]>('/admin/support/escalations', token),
-    fetchAdminJson<AdminUser[]>('/admin/users', token),
-    fetchAdminJson<AdminSystemHealth>('/admin/system/health', token),
-    fetchAdminJson<AdminActivityItem[]>('/admin/activity', token),
+    fetchAdminJson<AdminOverview>('/overview'),
+    fetchAdminJson<VendorItem[]>('/vendors/pending'),
+    fetchAdminJson<SponsorItem[]>('/sponsors/pending'),
+    fetchAdminJson<EventItem[]>('/events'),
+    fetchAdminJson<SupportTicket[]>('/support/tickets'),
+    fetchAdminJson<EscalationItem[]>('/support/escalations'),
+    fetchAdminJson<AdminUser[]>('/users'),
+    fetchAdminJson<AdminSystemHealth>('/system/health'),
+    fetchAdminJson<AdminActivityItem[]>('/activity'),
   ]);
 
   return {
@@ -1571,59 +1470,62 @@ async function loadAdminState(token: string): Promise<AdminDashboardState> {
 }
 
 async function fetchJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`/api/public${path}`, {
     cache: 'no-store',
   });
   if (!response.ok) {
-    throw new Error(`Request failed for ${path} with ${response.status}`);
+    throw new Error(await readErrorMessage(response, `Request failed for ${path}.`));
   }
   return (await response.json()) as T;
 }
 
-async function fetchAdminJson<T>(path: string, token: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+async function fetchAdminJson<T>(path: string): Promise<T> {
+  const response = await fetch(`/api/admin${normalizeAdminPath(path)}`, {
     cache: 'no-store',
-    headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) {
-    throw new Error(`Admin request failed for ${path} with ${response.status}`);
+    throw new Error(
+      await readErrorMessage(response, `Admin request failed for ${path}.`),
+    );
   }
   return (await response.json()) as T;
 }
 
 async function patchAdminJson(
   path: string,
-  token: string,
+  token?: string,
   body?: Record<string, unknown>,
 ): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  void token;
+  const response = await fetch(`/api/admin${normalizeAdminPath(path)}`, {
     method: 'PATCH',
     headers: {
-      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
     body: body == null ? undefined : JSON.stringify(body),
   });
   if (!response.ok) {
-    throw new Error(`Admin action failed for ${path} with ${response.status}`);
+    throw new Error(
+      await readErrorMessage(response, `Admin action failed for ${path}.`),
+    );
   }
 }
 
 async function postAdminJson(
   path: string,
-  token: string,
   body: Record<string, unknown>,
 ): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`/api/admin${normalizeAdminPath(path)}`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
   });
   if (!response.ok) {
-    throw new Error(`Admin action failed for ${path} with ${response.status}`);
+    throw new Error(
+      await readErrorMessage(response, `Admin action failed for ${path}.`),
+    );
   }
 }
 
@@ -1631,7 +1533,7 @@ async function postPublicJson<T>(
   path: string,
   body: Record<string, unknown>,
 ): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`/api/public${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1660,26 +1562,43 @@ async function postPublicJson<T>(
 }
 
 async function postAdminUpload(
-  path: string,
-  token: string,
+  kind: 'image' | 'document',
   file: File,
 ): Promise<UploadedAsset> {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`/api/uploads/${kind}`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
     body: formData,
   });
 
   if (!response.ok) {
-    throw new Error(`Upload failed for ${path} with ${response.status}`);
+    throw new Error(await readErrorMessage(response, 'Upload failed.'));
   }
 
   return (await response.json()) as UploadedAsset;
+}
+
+async function readErrorMessage(
+  response: Response,
+  fallback: string,
+): Promise<string> {
+  try {
+    const payload = (await response.json()) as { message?: string | string[] };
+    if (payload.message == null) {
+      return fallback;
+    }
+    return Array.isArray(payload.message)
+      ? payload.message.join(', ')
+      : payload.message;
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeAdminPath(path: string): string {
+  return path.startsWith('/admin/') ? path.slice('/admin'.length) : path;
 }
 
 function formatDate(value: string): string {

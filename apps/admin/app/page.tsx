@@ -1,7 +1,7 @@
-'use client';
-
 import { AdminConsole } from './admin-console';
+import { requireAdminSession } from '../lib/admin-session';
 
-export default function HomePage() {
-  return <AdminConsole activeSection="overview" />;
+export default async function HomePage() {
+  const viewer = await requireAdminSession();
+  return <AdminConsole activeSection="overview" viewer={viewer} />;
 }

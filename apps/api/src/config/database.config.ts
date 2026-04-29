@@ -7,7 +7,8 @@ export default registerAs('database', () => ({
   username: process.env.DB_USERNAME ?? 'postgres',
   password: process.env.DB_PASSWORD ?? 'postgres',
   database: process.env.DB_NAME ?? 'smart_event',
-  sqljsLocation: process.env.DB_SQLJS_LOCATION ?? '.tooling/demo/smart-event-local.sqlite',
+  sqljsLocation:
+    process.env.DB_SQLJS_LOCATION ?? '.tooling/runtime/smart-event.sqlite',
   synchronize:
     process.env.DB_SYNCHRONIZE === 'true' ||
     (process.env.DB_SYNCHRONIZE !== 'false' &&

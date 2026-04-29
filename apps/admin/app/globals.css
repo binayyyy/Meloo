@@ -749,6 +749,77 @@ h3 {
   padding: 14px 0 2px;
 }
 
+.session-card,
+.auth-card {
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(15, 166, 184, 0.08), transparent 26%),
+    linear-gradient(180deg, rgba(255, 251, 245, 0.96), rgba(255, 247, 239, 0.9));
+  box-shadow: var(--shadow);
+}
+
+.session-card {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+}
+
+.auth-shell {
+  min-height: 100vh;
+  padding: 32px;
+}
+
+.auth-stage {
+  display: grid;
+  place-items: center;
+  min-height: calc(100vh - 64px);
+}
+
+.auth-panel {
+  width: min(100%, 980px);
+  display: grid;
+  gap: 22px;
+}
+
+.auth-brand {
+  width: fit-content;
+}
+
+.auth-card {
+  width: min(100%, 540px);
+  padding: 30px;
+  display: grid;
+  gap: 18px;
+}
+
+.auth-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.auth-copy p:last-child,
+.blocked-card p:last-child {
+  max-width: 42ch;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.field-stack {
+  display: grid;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.blocked-card {
+  width: min(100%, 540px);
+}
+
+.auth-submit {
+  width: 100%;
+  justify-content: center;
+}
+
 @media (max-width: 1240px) {
   .overview-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -769,6 +840,10 @@ h3 {
 @media (max-width: 860px) {
   .admin-content {
     padding: 16px;
+  }
+
+  .auth-shell {
+    padding: 18px;
   }
 
   .topbar,

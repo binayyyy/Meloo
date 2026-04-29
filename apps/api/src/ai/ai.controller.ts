@@ -24,10 +24,16 @@ export class AiController {
   constructor(private readonly aiService: AiService) {}
 
   @Post('support/respond')
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(Role.ADMIN)
   generateSupportResponse(
+    @CurrentUser() user: AuthenticatedUser,
     @Body() dto: AiSupportRequestDto,
   ): Promise<AiSupportResponseDto> {
-    return this.aiService.generateSupportAssistance(dto.category, dto.message);
+    return this.aiService.generateSupportAssistance(dto.category, dto.message, {
+      requesterId: user.sub,
+      actingRole: user.role,
+    });
   }
 
   @Post('assistant/draft')

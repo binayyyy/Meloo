@@ -128,7 +128,7 @@ class _LocationMapFieldState extends State<LocationMapField> {
                     children: [
                       TileLayer(
                         urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        userAgentPackageName: 'local.meloo.app',
+                        userAgentPackageName: 'com.smarteventhub.meloo',
                       ),
                       if (point != null)
                         CircleLayer(

@@ -18,11 +18,10 @@ export class UserSetting {
   @Column({ type: 'varchar', name: 'privacy_level', default: 'contacts_only' })
   privacyLevel!: string;
 
-  @Column({ type: 'boolean', name: 'ai_assist_enabled', default: true })
+  @Column({ type: 'boolean', name: 'ai_assist_enabled', default: false })
   aiAssistEnabled!: boolean;
 
   @OneToOne(() => User, (user) => user.setting, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user!: User;
 }
-
