@@ -7,7 +7,7 @@ class AuthScaffold extends StatelessWidget {
     required this.subtitle,
     required this.child,
     required this.footer,
-    this.eyebrow = 'Meloo network',
+    this.eyebrow = 'Meloo access',
     this.highlights = const [],
     super.key,
   });
@@ -57,6 +57,48 @@ class AuthScaffold extends StatelessWidget {
                     child: LayoutBuilder(
                       builder: (context, constraints) {
                         final compact = constraints.maxWidth < 860;
+                        final brandPanel = _AuthBrandPanel(
+                          eyebrow: eyebrow,
+                          highlights: highlights,
+                          compact: compact,
+                        );
+                        final contentPanel = Container(
+                          padding: EdgeInsets.all(compact ? 4 : 10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: theme.textTheme.headlineLarge?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              if (subtitle.trim().isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  subtitle,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: const Color(0xFF66717D),
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 20),
+                              child,
+                              const SizedBox(height: 20),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.only(top: 16),
+                                decoration: const BoxDecoration(
+                                  border: Border(
+                                    top: BorderSide(color: Color(0xFFDCE3E8)),
+                                  ),
+                                ),
+                                child: footer,
+                              ),
+                            ],
+                          ),
+                        );
                         return Container(
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.88),
@@ -72,60 +114,23 @@ class AuthScaffold extends StatelessWidget {
                           ),
                           child: Padding(
                             padding: EdgeInsets.all(compact ? 18 : 22),
-                            child: Flex(
-                              direction: compact ? Axis.vertical : Axis.horizontal,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: _AuthBrandPanel(
-                                    eyebrow: eyebrow,
-                                    highlights: highlights,
-                                    compact: compact,
+                            child: compact
+                                ? Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      brandPanel,
+                                      const SizedBox(height: 18),
+                                      contentPanel,
+                                    ],
+                                  )
+                                : Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(child: brandPanel),
+                                      const SizedBox(width: 20),
+                                      Expanded(child: contentPanel),
+                                    ],
                                   ),
-                                ),
-                                SizedBox(
-                                  width: compact ? 0 : 20,
-                                  height: compact ? 18 : 0,
-                                ),
-                                Expanded(
-                                  child: Container(
-                                    padding: EdgeInsets.all(compact ? 4 : 10),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          title,
-                                          style: theme.textTheme.headlineLarge?.copyWith(
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          subtitle,
-                                          style: theme.textTheme.bodyMedium?.copyWith(
-                                            color: const Color(0xFF66717D),
-                                            height: 1.5,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 24),
-                                        child,
-                                        const SizedBox(height: 20),
-                                        Container(
-                                          width: double.infinity,
-                                          padding: const EdgeInsets.only(top: 16),
-                                          decoration: const BoxDecoration(
-                                            border: Border(
-                                              top: BorderSide(color: Color(0xFFDCE3E8)),
-                                            ),
-                                          ),
-                                          child: footer,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
                           ),
                         );
                       },
@@ -190,59 +195,52 @@ class _AuthBrandPanel extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  SizedBox(height: 2),
-                  Text(
-                    'Live event operations',
-                    style: TextStyle(
-                      color: Color(0xFFD9E3EB),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
                 ],
               ),
             ],
           ),
-          SizedBox(height: compact ? 34 : 72),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              eyebrow,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.2,
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
+          SizedBox(height: compact ? 28 : 36),
           const Text(
-            'Clean access\nfor every role.',
+            'Live events,\nclear operations.',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 28,
-              height: 1.02,
+              fontSize: 26,
+              height: 1.05,
               fontWeight: FontWeight.w800,
-              letterSpacing: -0.7,
+              letterSpacing: -0.8,
             ),
           ),
           const SizedBox(height: 10),
           const Text(
-            'Attendee, organizer, vendor, sponsor, and admin flows stay aligned in one calmer workspace.',
+            'One product for attendees, organizers, vendors, and sponsors.',
             style: TextStyle(
               color: Color(0xFFDCE5EC),
-              fontSize: 13,
-              height: 1.5,
+              fontSize: 12,
+              height: 1.45,
               fontWeight: FontWeight.w600,
             ),
           ),
+          if (eyebrow.trim().isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                eyebrow,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+          ],
           if (highlights.isNotEmpty) ...[
-            const SizedBox(height: 18),
+            const SizedBox(height: 14),
             Wrap(
               spacing: 8,
               runSpacing: 8,

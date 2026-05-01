@@ -100,13 +100,14 @@ class AuthApiClient {
     required Map<String, dynamic> body,
   }) async {
     final uri = Uri.parse('$_defaultBaseUrl/users/me');
+    final sanitizedBody = _removeNullValues(body);
     final response = await _client.patch(
       uri,
       headers: {
         'Authorization': 'Bearer $accessToken',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode(body),
+      body: jsonEncode(sanitizedBody),
     );
 
     final json = _decode(response);
@@ -148,5 +149,27 @@ class AuthApiClient {
     return decoded is Map<String, dynamic>
         ? decoded
         : <String, dynamic>{};
+  }
+
+  Map<String, dynamic> _removeNullValues(Map<String, dynamic> source) {
+    final cleaned = <String, dynamic>{};
+
+    source.forEach((key, value) {
+      if (value == null) {
+        return;
+      }
+
+      if (value is Map<String, dynamic>) {
+        final nested = _removeNullValues(value);
+        if (nested.isNotEmpty) {
+          cleaned[key] = nested;
+        }
+        return;
+      }
+
+      cleaned[key] = value;
+    });
+
+    return cleaned;
   }
 }

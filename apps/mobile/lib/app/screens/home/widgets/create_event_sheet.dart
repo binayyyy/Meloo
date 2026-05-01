@@ -208,7 +208,7 @@ class _CreateEventSheetState extends State<CreateEventSheet> {
                   controller: _coverImageUrlController,
                   kind: UploadAssetKind.image,
                   helper:
-                      'Upload the event banner directly here or paste an existing asset URL.',
+                      'Upload the event banner that should appear across event listings and detail views.',
                   previewHeight: 160,
                 ),
                 const SizedBox(height: 14),

@@ -41,7 +41,7 @@ class MelooBrandLockup extends StatelessWidget {
   const MelooBrandLockup({
     this.compact = false,
     this.showCaption = true,
-    this.caption = 'Live event operations',
+    this.caption = 'Events platform',
     super.key,
   });
 
@@ -72,9 +72,9 @@ class MelooBrandLockup extends StatelessWidget {
               'Meloo',
               style: TextStyle(
                 color: const Color(0xFF17212B),
-                fontSize: compact ? 16 : 18,
+                fontSize: compact ? 17 : 19,
                 fontWeight: FontWeight.w800,
-                letterSpacing: -0.35,
+                letterSpacing: -0.45,
               ),
             ),
             if (showCaption) ...[

@@ -14,10 +14,11 @@ class WorkflowPageScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F2EC),
+      backgroundColor: const Color(0xFFF5F1EA),
       appBar: AppBar(
         toolbarHeight: 68,
         titleSpacing: 8,
+        backgroundColor: const Color(0xFFF5F1EA),
         title: const MelooBrandLockup(
           compact: true,
           showCaption: false,
@@ -30,8 +31,8 @@ class WorkflowPageScaffold extends StatelessWidget {
       body: DecoratedBox(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
             colors: [Color(0xFFF6F2EC), Color(0xFFEEF2F5)],
           ),
         ),
@@ -40,27 +41,19 @@ class WorkflowPageScaffold extends StatelessWidget {
           child: Stack(
             children: [
               Positioned(
-                top: -90,
-                right: -50,
-                child: Container(
-                  width: 220,
-                  height: 220,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Color(0x144D6278),
-                  ),
+                top: -110,
+                right: -60,
+                child: _ScaffoldOrb(
+                  size: 240,
+                  color: Color(0x184D6278),
                 ),
               ),
               Positioned(
-                left: -70,
-                bottom: -80,
-                child: Container(
-                  width: 240,
-                  height: 240,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Color(0x10C89C5D),
-                  ),
+                left: -80,
+                bottom: -90,
+                child: _ScaffoldOrb(
+                  size: 260,
+                  color: Color(0x14C89C5D),
                 ),
               ),
               Align(
@@ -70,6 +63,35 @@ class WorkflowPageScaffold extends StatelessWidget {
                   child: child,
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScaffoldOrb extends StatelessWidget {
+  const _ScaffoldOrb({
+    required this.size,
+    required this.color,
+  });
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [
+              color,
+              color.withValues(alpha: 0),
             ],
           ),
         ),

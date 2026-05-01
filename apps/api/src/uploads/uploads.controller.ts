@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Controller,
   Post,
+  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -23,6 +24,11 @@ type StoredUploadFile = {
 };
 type StorageCallback = (error: Error | null, value: string) => void;
 type FileFilterCallback = (error: Error | null, acceptFile: boolean) => void;
+type UploadRequest = {
+  protocol?: string;
+  get?: (name: string) => string | undefined;
+  headers?: Record<string, string | string[] | undefined>;
+};
 
 // `multer` ships through Nest here, but the repo does not include its TS types.
 const { diskStorage } = require('multer') as {
@@ -59,6 +65,49 @@ function sanitizeExtension(originalName: string, mimeType: string): string {
   return safeFallback ? `.${safeFallback}` : '.bin';
 }
 
+function isAcceptedFile(file: StoredUploadFile, kind: UploadKind): boolean {
+  const mimeType = file.mimetype.toLowerCase();
+  const extension = sanitizeExtension(file.originalname, mimeType);
+
+  if (kind === 'image') {
+    return (
+      mimeType.startsWith('image/') ||
+      [
+        '.png',
+        '.jpg',
+        '.jpeg',
+        '.gif',
+        '.webp',
+        '.bmp',
+        '.svg',
+        '.heic',
+        '.heif',
+      ].includes(extension)
+    );
+  }
+
+  return (
+    [
+      'application/pdf',
+      'text/plain',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+    ].some((allowed) => mimeType.startsWith(allowed)) ||
+    mimeType.startsWith('image/') ||
+    [
+      '.pdf',
+      '.txt',
+      '.doc',
+      '.docx',
+      '.png',
+      '.jpg',
+      '.jpeg',
+      '.gif',
+      '.webp',
+    ].includes(extension)
+  );
+}
+
 function createStorage(kind: UploadKind) {
   return diskStorage({
     destination: (
@@ -90,16 +139,7 @@ function createFileFilter(kind: UploadKind) {
     file: StoredUploadFile,
     callback: FileFilterCallback,
   ) => {
-    const isAccepted =
-      kind === 'image'
-        ? file.mimetype.startsWith('image/')
-        : [
-            'application/pdf',
-            'image/',
-            'text/plain',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'application/msword',
-          ].some((allowed) => file.mimetype.startsWith(allowed));
+    const isAccepted = isAcceptedFile(file, kind);
 
     if (!isAccepted) {
       callback(
@@ -136,9 +176,10 @@ export class UploadsController {
     }),
   )
   uploadImage(
+    @Req() request: UploadRequest,
     @UploadedFile() file?: StoredUploadFile,
   ): UploadedAssetResponseDto {
-    return this.toUploadedAssetResponse(file, 'image');
+    return this.toUploadedAssetResponse(file, 'image', request);
   }
 
   @Post('documents')
@@ -155,14 +196,16 @@ export class UploadsController {
     }),
   )
   uploadDocument(
+    @Req() request: UploadRequest,
     @UploadedFile() file?: StoredUploadFile,
   ): UploadedAssetResponseDto {
-    return this.toUploadedAssetResponse(file, 'document');
+    return this.toUploadedAssetResponse(file, 'document', request);
   }
 
   private toUploadedAssetResponse(
     file: StoredUploadFile | undefined,
     kind: UploadKind,
+    request: UploadRequest,
   ): UploadedAssetResponseDto {
     if (!file) {
       throw new BadRequestException('File upload is required');
@@ -172,6 +215,11 @@ export class UploadsController {
       kind === 'image' ? 'images' : 'documents'
     }/${file.filename}`;
 
-    return this.uploadsService.toUploadedAssetResponse(file, kind, relativePath);
+    return this.uploadsService.toUploadedAssetResponse(
+      file,
+      kind,
+      relativePath,
+      request,
+    );
   }
 }

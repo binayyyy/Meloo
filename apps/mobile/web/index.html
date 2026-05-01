@@ -33,6 +33,7 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <div id="startup-error" style="position:fixed; inset:0; z-index:2147483647; display:none; padding:24px; white-space:pre-wrap; font:14px/1.5 sans-serif; color:#17212B; background:#F8F3ED;"></div>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader
@@ -41,6 +42,25 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
+  <script>
+    (function () {
+      const errorNode = document.getElementById('startup-error');
+      function show(message) {
+        if (!errorNode) return;
+        errorNode.style.display = 'block';
+        errorNode.textContent = message;
+      }
+      window.addEventListener('error', function (event) {
+        show('JavaScript startup error\n\n' + (event.message || 'Unknown error'));
+      });
+      window.addEventListener('unhandledrejection', function (event) {
+        const reason = event.reason && event.reason.stack
+          ? event.reason.stack
+          : String(event.reason || 'Unknown promise rejection');
+        show('Unhandled startup rejection\n\n' + reason);
+      });
+    })();
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

@@ -43,6 +43,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           content: Text(authController.errorMessage ?? 'Request failed'),
         ),
       );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            authController.errorMessage ?? 'Unable to reach the server',
+          ),
+        ),
+      );
     }
   }
 
@@ -51,14 +62,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final authController = AuthScope.of(context);
 
     return AuthScaffold(
-      eyebrow: 'Password reset',
+      eyebrow: '',
       title: 'Reset password',
-      subtitle:
-          'Request a reset for your Meloo account and continue the recovery flow from your email or support team.',
-      highlights: const [
-        'Secure reset',
-        'Protected recovery flow',
-      ],
+      subtitle: 'Enter your account email.',
       footer: Align(
         alignment: Alignment.centerLeft,
         child: TextButton(

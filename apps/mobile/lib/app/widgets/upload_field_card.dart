@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 import '../session/auth_api_client.dart';
 import '../uploads/upload_models.dart';
 import '../uploads/uploads_api_client.dart';
+import 'remote_media.dart';
 
 class UploadFieldCard extends StatefulWidget {
   const UploadFieldCard({
@@ -99,6 +100,19 @@ class _UploadFieldCardState extends State<UploadFieldCard> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error.message)),
       );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.kind == UploadAssetKind.image
+                ? 'Image picker is unavailable right now.'
+                : 'Document picker is unavailable right now.',
+          ),
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isUploading = false);
@@ -164,45 +178,84 @@ class _UploadFieldCardState extends State<UploadFieldCard> {
         const SizedBox(height: 12),
         TextField(
           controller: widget.controller,
+          readOnly: true,
+          minLines: 1,
+          maxLines: 2,
           decoration: InputDecoration(
-            labelText: '${widget.label} URL',
+            labelText: '${widget.label} asset',
             prefixIcon: Icon(
               widget.kind == UploadAssetKind.image
                   ? Icons.image_outlined
                   : Icons.description_outlined,
             ),
+            suffixIcon: currentValue.isEmpty
+                ? null
+                : IconButton(
+                    onPressed: () {
+                      widget.controller.clear();
+                      setState(() => _uploadedAsset = null);
+                    },
+                    icon: const Icon(Icons.close_rounded),
+                    tooltip: 'Remove asset',
+                  ),
           ),
         ),
         if (currentValue.isNotEmpty) ...[
           const SizedBox(height: 12),
           if (widget.kind == UploadAssetKind.image)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: selectedBytes != null
-                  ? Image.memory(
-                      selectedBytes,
-                      height: widget.previewHeight,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    )
-                  : Image.network(
-                      currentValue,
-                      height: widget.previewHeight,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: selectedBytes != null
+                      ? Image.memory(
+                          selectedBytes,
                           height: widget.previewHeight,
                           width: double.infinity,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF4ECE0),
-                            borderRadius: BorderRadius.circular(18),
+                          fit: BoxFit.cover,
+                        )
+                      : MelooRemoteImage(
+                          imageUrl: currentValue,
+                          fallbackLabel: widget.label,
+                          height: widget.previewHeight,
+                          width: double.infinity,
+                          fontSize: 28,
+                          fallbackGradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Color(0xFF2E4A62),
+                              Color(0xFF4D6478),
+                              Color(0xFF7A8F9E),
+                            ],
                           ),
-                          child: const Text('Preview unavailable for this image'),
-                        );
-                      },
+                        ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    FilledButton.tonalIcon(
+                      onPressed: () => launchUrlString(
+                        currentValue,
+                        mode: LaunchMode.platformDefault,
+                      ),
+                      icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                      label: const Text('Open'),
                     ),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        widget.controller.clear();
+                        setState(() => _uploadedAsset = null);
+                      },
+                      icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                      label: const Text('Remove'),
+                    ),
+                  ],
+                ),
+              ],
             )
           else
             Container(
@@ -235,6 +288,14 @@ class _UploadFieldCardState extends State<UploadFieldCard> {
                       mode: LaunchMode.platformDefault,
                     ),
                     child: const Text('Open document'),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton(
+                    onPressed: () {
+                      widget.controller.clear();
+                      setState(() => _uploadedAsset = null);
+                    },
+                    child: const Text('Remove document'),
                   ),
                 ],
               ),

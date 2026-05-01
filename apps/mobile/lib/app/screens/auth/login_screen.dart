@@ -43,6 +43,17 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(
             content: Text(authController.errorMessage ?? 'Sign in failed')),
       );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            authController.errorMessage ?? 'Unable to reach the server',
+          ),
+        ),
+      );
     }
   }
 
@@ -51,15 +62,9 @@ class _LoginScreenState extends State<LoginScreen> {
     final authController = AuthScope.of(context);
 
     return AuthScaffold(
-      eyebrow: 'Workspace access',
+      eyebrow: '',
       title: 'Sign in',
-      subtitle: 'Continue into your Meloo workspace.',
-      highlights: const [
-        'Attendee',
-        'Organizer',
-        'Vendor',
-        'Sponsor',
-      ],
+      subtitle: 'Welcome back.',
       footer: Wrap(
         spacing: 8,
         runSpacing: 8,
@@ -94,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
                     labelText: 'Email',
-                    hintText: 'you@company.com',
+                    hintText: 'name@company.com',
                     prefixIcon: Icon(Icons.alternate_email_rounded),
                   ),
                   validator: (value) {

@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 
 class PlatformAccessBlockedScreen extends StatelessWidget {
-  const PlatformAccessBlockedScreen({super.key});
+  const PlatformAccessBlockedScreen({
+    this.onSignOut,
+    super.key,
+  });
+
+  final VoidCallback? onSignOut;
 
   @override
   Widget build(BuildContext context) {
@@ -28,9 +33,9 @@ class PlatformAccessBlockedScreen extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'Mobile access only',
+              children: [
+                const Text(
+                  'Admin access is web only',
                   style: TextStyle(
                     color: Color(0xFF14212B),
                     fontSize: 30,
@@ -38,9 +43,9 @@ class PlatformAccessBlockedScreen extends StatelessWidget {
                     letterSpacing: -1,
                   ),
                 ),
-                SizedBox(height: 14),
-                Text(
-                  'This experience is reserved for iOS and Android. Open the admin console from a desktop browser if you need internal operations access.',
+                const SizedBox(height: 14),
+                const Text(
+                  'Use the web admin console for operational access. This app stays focused on attendee, organizer, vendor, and sponsor workflows.',
                   style: TextStyle(
                     color: Color(0xFF5B6772),
                     height: 1.6,
@@ -48,6 +53,14 @@ class PlatformAccessBlockedScreen extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+                if (onSignOut != null) ...[
+                  const SizedBox(height: 22),
+                  FilledButton.icon(
+                    onPressed: onSignOut,
+                    icon: const Icon(Icons.logout_rounded),
+                    label: const Text('Sign out and switch account'),
+                  ),
+                ],
               ],
             ),
           ),

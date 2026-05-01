@@ -126,7 +126,7 @@ class _LoadingScreenState extends State<LoadingScreen>
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          'Preparing live event operations',
+                          'Loading',
                           style: TextStyle(
                             color: Color(0xFF68737D),
                             fontSize: 14,

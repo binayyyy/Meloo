@@ -7,6 +7,7 @@ import '../../session/auth_api_client.dart';
 import '../../session/auth_models.dart';
 import '../../uploads/upload_models.dart';
 import '../../uploads/uploads_api_client.dart';
+import '../../widgets/remote_media.dart';
 import '../../widgets/workflow_page_scaffold.dart';
 
 class ConversationScreen extends StatefulWidget {
@@ -731,16 +732,21 @@ class _AttachmentCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           child: Stack(
             children: [
-              Image.network(
-                attachment.url,
+              MelooRemoteImage(
+                imageUrl: attachment.url,
+                fallbackLabel: attachment.name,
                 height: 180,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  height: 180,
-                  color: const Color(0xFFEAF0F5),
-                  alignment: Alignment.center,
-                  child: const Text('Image preview unavailable'),
+                fontSize: 28,
+                fallbackGradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF2E4A62),
+                    Color(0xFF4D6478),
+                    Color(0xFF7A8F9E),
+                  ],
                 ),
               ),
               Positioned(

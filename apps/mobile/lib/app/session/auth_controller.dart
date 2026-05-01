@@ -91,6 +91,14 @@ class AuthController extends SafeChangeNotifier {
       _errorMessage = error.message;
       notifyListeners();
       rethrow;
+    } catch (_) {
+      _status = _session == null
+          ? AuthStatus.unauthenticated
+          : AuthStatus.authenticated;
+      _errorMessage =
+          'Unable to reach the server. Check the local API and try again.';
+      notifyListeners();
+      rethrow;
     }
   }
 
@@ -132,6 +140,11 @@ class AuthController extends SafeChangeNotifier {
       notifyListeners();
     } on ApiException catch (error) {
       _errorMessage = error.message;
+      notifyListeners();
+      rethrow;
+    } catch (_) {
+      _errorMessage =
+          'Unable to reach the server. Check the local API and try again.';
       notifyListeners();
       rethrow;
     }
@@ -177,6 +190,13 @@ class AuthController extends SafeChangeNotifier {
       _session = null;
       _status = AuthStatus.unauthenticated;
       _errorMessage = error.message;
+      notifyListeners();
+      rethrow;
+    } catch (_) {
+      _session = null;
+      _status = AuthStatus.unauthenticated;
+      _errorMessage =
+          'Unable to reach the server. Check the local API and try again.';
       notifyListeners();
       rethrow;
     }

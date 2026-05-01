@@ -7,6 +7,7 @@ import '../../events/event_models.dart';
 import '../../session/auth_api_client.dart';
 import '../../session/auth_models.dart';
 import '../../session/auth_scope.dart';
+import '../../widgets/remote_media.dart';
 import '../../widgets/workflow_page_scaffold.dart';
 import 'widgets/create_ticket_type_sheet.dart';
 import 'widgets/register_ticket_sheet.dart';
@@ -521,136 +522,121 @@ class _DetailHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x12101828),
-            blurRadius: 22,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: event.coverImageUrl != null && event.coverImageUrl!.isNotEmpty
-                  ? Image.network(
-                      event.coverImageUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const SizedBox.expand(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Color(0xFF2E4A62),
-                                  Color(0xFF4D6478),
-                                  Color(0xFF6D7D8B),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    )
-                  : const SizedBox.expand(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Color(0xFF2E4A62),
-                              Color(0xFF4D6478),
-                              Color(0xFF6D7D8B),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
+    return AspectRatio(
+      aspectRatio: 1.12,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x12101828),
+              blurRadius: 22,
+              offset: Offset(0, 10),
             ),
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: MelooRemoteImage(
+                  imageUrl: event.coverImageUrl,
+                  fallbackLabel: event.title,
+                  fit: BoxFit.cover,
+                  borderRadius: BorderRadius.circular(24),
+                  fontSize: 38,
+                  fallbackGradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                     colors: [
-                      const Color(0xFF192734).withValues(alpha: 0.18),
-                      const Color(0xFF192734).withValues(alpha: 0.84),
+                      Color(0xFF2E4A62),
+                      Color(0xFF4D6478),
+                      Color(0xFF6D7D8B),
                     ],
                   ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0x14FFFFFF),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      event.category.name.toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5,
-                      ),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        const Color(0xFF192734).withValues(alpha: 0.16),
+                        const Color(0xFF192734).withValues(alpha: 0.88),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  Text(
-                    event.title,
-                    style: const TextStyle(
-                      fontSize: 26,
-                      height: 1.06,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${event.venue}, ${event.city}',
-                    style: const TextStyle(
-                      color: Color(0xFFE6F0EE),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _MetaBadge(label: _formatWindow(event), inverse: true),
-                      _MetaBadge(
-                        label: '${event.status} / ${event.visibility}',
-                        inverse: true,
-                      ),
-                      _MetaBadge(
-                        label: manageMode
-                            ? '$ticketCount ticket lane${ticketCount == 1 ? '' : 's'}'
-                            : 'Stripe-ready checkout',
-                        inverse: true,
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0x14FFFFFF),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        event.category.name.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      event.title,
+                      style: const TextStyle(
+                        fontSize: 26,
+                        height: 1.06,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${event.venue}, ${event.city}',
+                      style: const TextStyle(
+                        color: Color(0xFFE6F0EE),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _MetaBadge(label: _formatWindow(event), inverse: true),
+                        _MetaBadge(
+                          label: '${event.status} / ${event.visibility}',
+                          inverse: true,
+                        ),
+                        _MetaBadge(
+                          label: manageMode
+                              ? '$ticketCount ticket lane${ticketCount == 1 ? '' : 's'}'
+                              : 'Tickets ready',
+                          inverse: true,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1053,7 +1039,7 @@ class _TicketCard extends StatelessWidget {
           Text(
             ticket.isFree
                 ? 'Free entry with instant confirmation'
-                : 'Stripe checkout in test mode for paid access',
+                : 'Secure checkout for paid access',
             style: const TextStyle(
               color: Color(0xFF5F645F),
               fontSize: 13,

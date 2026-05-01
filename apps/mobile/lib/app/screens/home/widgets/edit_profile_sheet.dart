@@ -16,8 +16,8 @@ class EditProfileSheet extends StatefulWidget {
   final String accessToken;
   final UserModel user;
   final Future<void> Function(
-    UserProfileModel profile,
-    UserSettingsModel settings,
+    UserProfileModel? profile,
+    UserSettingsModel? settings,
   ) onSubmit;
   final bool isSubmitting;
 
@@ -37,6 +37,11 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
   late String _privacyLevel;
   String? _errorMessage;
   bool _isSaving = false;
+  static const Set<String> _allowedPrivacyLevels = {
+    'community',
+    'contacts_only',
+    'private',
+  };
 
   @override
   void initState() {
@@ -56,7 +61,10 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
     _notificationsEnabled = widget.user.settings?.notificationsEnabled ?? true;
     _marketingEnabled = widget.user.settings?.marketingEnabled ?? false;
     _aiAssistEnabled = widget.user.settings?.aiAssistEnabled ?? false;
-    _privacyLevel = widget.user.settings?.privacyLevel ?? 'community';
+    final initialPrivacy = widget.user.settings?.privacyLevel;
+    _privacyLevel = _allowedPrivacyLevels.contains(initialPrivacy)
+        ? initialPrivacy!
+        : 'contacts_only';
   }
 
   @override
@@ -219,9 +227,6 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('AI assist'),
-                subtitle: const Text(
-                  'Enables manual AI drafting inside supported workflows.',
-                ),
                 value: _aiAssistEnabled,
                 onChanged: isSubmitting
                     ? null
@@ -243,11 +248,12 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
                           final avatarUrl = _avatarUrlController.text.trim();
                           if (avatarUrl.isNotEmpty) {
                             final parsed = Uri.tryParse(avatarUrl);
-                            final isHttp = parsed != null &&
+                            final isValidUrl = parsed != null &&
                                 parsed.hasScheme &&
+                                parsed.host.isNotEmpty &&
                                 (parsed.scheme == 'http' ||
                                     parsed.scheme == 'https');
-                            if (!isHttp) {
+                            if (!isValidUrl) {
                               setState(() {
                                 _errorMessage =
                                     'Avatar image must use a valid http or https URL.';
@@ -261,26 +267,53 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
                             _isSaving = true;
                           });
 
+                          final nextProfile = UserProfileModel(
+                            fullName: _fullNameController.text.trim().isEmpty
+                                ? null
+                                : _fullNameController.text.trim(),
+                            phone: _phoneController.text.trim().isEmpty
+                                ? null
+                                : _phoneController.text.trim(),
+                            bio: _bioController.text.trim().isEmpty
+                                ? null
+                                : _bioController.text.trim(),
+                            avatarUrl: avatarUrl.isEmpty ? null : avatarUrl,
+                          );
+                          final nextSettings = UserSettingsModel(
+                            notificationsEnabled: _notificationsEnabled,
+                            marketingEnabled: _marketingEnabled,
+                            privacyLevel: _privacyLevel,
+                            aiAssistEnabled: _aiAssistEnabled,
+                          );
+                          final currentProfile = widget.user.profile;
+                          final currentSettings = widget.user.settings;
+                          final profileChanged =
+                              currentProfile?.fullName != nextProfile.fullName ||
+                                  currentProfile?.phone != nextProfile.phone ||
+                                  currentProfile?.bio != nextProfile.bio ||
+                                  currentProfile?.avatarUrl !=
+                                      nextProfile.avatarUrl;
+                          final settingsChanged =
+                              currentSettings?.notificationsEnabled !=
+                                      nextSettings.notificationsEnabled ||
+                                  currentSettings?.marketingEnabled !=
+                                      nextSettings.marketingEnabled ||
+                                  currentSettings?.privacyLevel !=
+                                      nextSettings.privacyLevel ||
+                                  currentSettings?.aiAssistEnabled !=
+                                      nextSettings.aiAssistEnabled;
+
+                          if (!profileChanged && !settingsChanged) {
+                            if (mounted) {
+                              navigator.pop();
+                            }
+                            return;
+                          }
+
                           try {
                             await widget.onSubmit(
-                              UserProfileModel(
-                                fullName: _fullNameController.text.trim().isEmpty
-                                    ? null
-                                    : _fullNameController.text.trim(),
-                                phone: _phoneController.text.trim().isEmpty
-                                    ? null
-                                    : _phoneController.text.trim(),
-                                bio: _bioController.text.trim().isEmpty
-                                    ? null
-                                    : _bioController.text.trim(),
-                                avatarUrl: avatarUrl.isEmpty ? null : avatarUrl,
-                              ),
-                              UserSettingsModel(
-                                notificationsEnabled: _notificationsEnabled,
-                                marketingEnabled: _marketingEnabled,
-                                privacyLevel: _privacyLevel,
-                                aiAssistEnabled: _aiAssistEnabled,
-                              ),
+                              profileChanged ? nextProfile : null,
+                              settingsChanged ? nextSettings : null,
                             );
                             if (mounted) {
                               navigator.pop();

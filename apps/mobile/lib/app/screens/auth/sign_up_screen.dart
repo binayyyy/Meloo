@@ -45,6 +45,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
         SnackBar(
             content: Text(authController.errorMessage ?? 'Sign up failed')),
       );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            authController.errorMessage ?? 'Unable to reach the server',
+          ),
+        ),
+      );
     }
   }
 
@@ -53,20 +64,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final authController = AuthScope.of(context);
 
     return AuthScaffold(
-      eyebrow: 'New workspace',
+      eyebrow: '',
       title: 'Create account',
-      subtitle: 'Choose the role you want to start with.',
-      highlights: const [
-        'Attendee',
-        'Organizer',
-        'Vendor',
-        'Sponsor',
-      ],
+      subtitle: 'Set up your account.',
       footer: Wrap(
         spacing: 8,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          const Text('Already registered?'),
+          const Text('Already have an account?'),
           TextButton(
             onPressed: () => Navigator.of(context).pushNamed(AppRouter.login),
             child: const Text('Sign in'),
@@ -107,7 +112,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Starting role',
+                    'Role',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
