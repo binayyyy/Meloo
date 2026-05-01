@@ -36,6 +36,7 @@ apps/
 docs/
 tools/
 compose.yaml
+compose.ai.yaml
 Dockerfile.api
 Dockerfile.admin
 ```
@@ -108,9 +109,17 @@ cd ../mobile && flutter pub get
 
 ## Run With Docker
 
-The Docker stack is the fastest way to boot the API, database, admin, uploads, and seeded demo data.
+The Docker setup is split the right way:
 
-Start it:
+- `compose.yaml`: core stack with Postgres, API, and admin
+- `compose.ai.yaml`: optional Ollama overlay for AI features
+- `seed` profile: optional one-shot demo data loader
+
+The Flutter app is not containerized. Keep it outside Docker for dev and QA.
+
+### Base Stack
+
+Start the core services:
 
 ```bash
 docker compose up --build
@@ -120,25 +129,65 @@ This starts:
 
 - `db`: PostGIS-ready PostgreSQL on `localhost:5432`
 - `api`: NestJS API on `http://localhost:3000/api`
-- `seed`: one-shot demo seed job
 - `admin`: Next.js admin on `http://localhost:3001`
 
 Uploads are served from:
 
 - `http://localhost:3000/uploads/...`
 
+### Seed Demo Data
+
+Run the one-shot seed profile when you want demo users and sample activity:
+
+```bash
+docker compose --profile seed up seed
+```
+
+This writes demo output to the `smart_event_demo` volume and seeds:
+
+- admin
+- organizer
+- vendor
+- sponsor
+- attendee
+
+### Enable AI In Docker
+
+Start the stack with the Ollama overlay:
+
+```bash
+docker compose -f compose.yaml -f compose.ai.yaml up --build
+```
+
+This adds:
+
+- `ollama`: local AI runtime on `localhost:11434`
+
+If you also want seeded demo data at the same time:
+
+```bash
+docker compose -f compose.yaml -f compose.ai.yaml --profile seed up --build
+```
+
 Docker notes:
 
-- The compose stack does not run the Flutter app.
-- AI is disabled in `compose.yaml` by default.
-- Stripe is disabled in `compose.yaml` by default.
+- The app stack is multi-container by design. Do not try to bundle Postgres, API, admin, and AI model weights into one image.
+- AI is disabled in `compose.yaml` by default and only enabled through `compose.ai.yaml`.
+- Stripe is still optional and disabled unless you provide keys.
 - Uploaded files are stored in the `smart_event_uploads` Docker volume.
 - PostgreSQL data is stored in the `meloo_postgres` Docker volume.
+- Ollama models are stored in the `ollama_data` volume when the AI overlay is used.
 
 Reset the Docker state:
 
 ```bash
 docker compose down -v
+```
+
+If you used the AI overlay:
+
+```bash
+docker compose -f compose.yaml -f compose.ai.yaml down -v
 ```
 
 ## Run Locally Without Docker
@@ -281,6 +330,17 @@ If you want the whole product working locally, these are the moving parts:
 - Flutter app: required for public-role flows
 - Ollama: optional, but required for local AI features
 - Stripe: optional, but required for real paid checkout behavior
+
+## Docker Images
+
+The Docker approach in this repo intentionally separates concerns:
+
+- API image: NestJS runtime only
+- Admin image: Next.js standalone runtime only
+- Database container: PostgreSQL/PostGIS
+- Optional Ollama container: AI runtime and model storage
+
+That keeps the app images reasonably sized and avoids shipping AI model weights inside the application containers.
 
 ## AI Features
 
