@@ -3,7 +3,8 @@ param(
 )
 
 if (-not $EnvPath) {
-  $EnvPath = Join-Path (Split-Path $PSScriptRoot -Parent -Parent) ".env"
+  $repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+  $EnvPath = Join-Path $repoRoot ".env"
 }
 
 if (-not (Test-Path $EnvPath)) {

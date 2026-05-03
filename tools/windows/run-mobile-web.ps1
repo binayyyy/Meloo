@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-$repoRoot = Split-Path $PSScriptRoot -Parent -Parent
+$repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 . (Join-Path $PSScriptRoot "Load-DotEnv.ps1")
 
 $apiBaseUrl = if ($env:NEXT_PUBLIC_API_BASE_URL) {
