@@ -19,6 +19,7 @@ class SmartEventMobileApp extends StatefulWidget {
 class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
   late final AppRouter _router;
   String? _lastEntryNavigationSignature;
+  AuthStatus? _lastHandledAuthStatus;
 
   @override
   void initState() {
@@ -40,6 +41,10 @@ class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
       return;
     }
 
+    final authStatus = widget.authController.status;
+    final statusChanged = _lastHandledAuthStatus != authStatus;
+    _lastHandledAuthStatus = authStatus;
+
     final navigator = _router.navigatorKey.currentState;
     if (navigator == null) {
       return;
@@ -55,12 +60,14 @@ class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
         _ => AppRouter.login,
       };
 
+      if (!statusChanged && _lastEntryNavigationSignature == routeName) {
+        return;
+      }
+
       navigator.pushNamedAndRemoveUntil(routeName, (route) => false);
       _lastEntryNavigationSignature = routeName;
       return;
     }
-
-    navigator.pushNamedAndRemoveUntil(AppRouter.home, (route) => false);
 
     final eventId = queryParameters['eventId'];
     final manageMode = queryParameters['manageMode'] == 'true';
@@ -68,9 +75,24 @@ class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
     final paymentSessionId = queryParameters['session_id'];
     final paymentSignature =
         'payment:$paymentResult:$paymentSessionId:$eventId';
+    final eventSignature = '$entryRoute:$eventId:$manageMode';
+    final targetSignature =
+        (paymentResult == 'success' || paymentResult == 'cancel') &&
+                paymentSessionId != null
+            ? paymentSignature
+            : (entryRoute == 'event-detail' && eventId != null)
+                ? eventSignature
+                : AppRouter.home;
+
+    if (!statusChanged && _lastEntryNavigationSignature == targetSignature) {
+      return;
+    }
+
+    navigator.pushNamedAndRemoveUntil(AppRouter.home, (route) => false);
+
     if ((paymentResult == 'success' || paymentResult == 'cancel') &&
         paymentSessionId != null &&
-        _lastEntryNavigationSignature != paymentSignature) {
+        targetSignature == paymentSignature) {
       _lastEntryNavigationSignature = paymentSignature;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final currentNavigator = _router.navigatorKey.currentState;
@@ -89,11 +111,10 @@ class _SmartEventMobileAppState extends State<SmartEventMobileApp> {
       return;
     }
 
-    final signature = '$entryRoute:$eventId:$manageMode';
     if (entryRoute == 'event-detail' &&
         eventId != null &&
-        _lastEntryNavigationSignature != signature) {
-      _lastEntryNavigationSignature = signature;
+        targetSignature == eventSignature) {
+      _lastEntryNavigationSignature = eventSignature;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final currentNavigator = _router.navigatorKey.currentState;
         if (!mounted || currentNavigator == null) {

@@ -57,7 +57,11 @@ class _LocationMapFieldState extends State<LocationMapField> {
     _latitude = widget.initialLatitude;
     _longitude = widget.initialLongitude;
     _radiusKm = widget.initialRadiusKm;
-    _emit();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _emit();
+      }
+    });
   }
 
   @override
@@ -69,7 +73,11 @@ class _LocationMapFieldState extends State<LocationMapField> {
       _latitude = widget.initialLatitude;
       _longitude = widget.initialLongitude;
       _radiusKm = widget.initialRadiusKm;
-      _emit();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _emit();
+        }
+      });
     }
   }
 
@@ -118,8 +126,8 @@ class _LocationMapFieldState extends State<LocationMapField> {
                       initialZoom: hasPoint ? 12.5 : widget.defaultZoom,
                       onTap: (_, tappedPoint) {
                         setState(() {
-                          _latitude = tappedPoint.latitude;
-                          _longitude = tappedPoint.longitude;
+                          _latitude = _roundCoordinate(tappedPoint.latitude);
+                          _longitude = _roundCoordinate(tappedPoint.longitude);
                         });
                         _emit();
                         _mapController.move(tappedPoint, 12.5);
@@ -270,7 +278,7 @@ class _LocationMapFieldState extends State<LocationMapField> {
             divisions: 49,
             label: '${_radiusKm.toStringAsFixed(0)} km',
             onChanged: (value) {
-              setState(() => _radiusKm = value);
+              setState(() => _radiusKm = _roundRadius(value));
               _emit();
             },
           ),
@@ -309,9 +317,17 @@ class _LocationMapFieldState extends State<LocationMapField> {
       LocationSelection(
         latitude: _latitude,
         longitude: _longitude,
-        radiusKm: _radiusKm,
+        radiusKm: _roundRadius(_radiusKm),
       ),
     );
+  }
+
+  double _roundCoordinate(double value) {
+    return double.parse(value.toStringAsFixed(6));
+  }
+
+  double _roundRadius(double value) {
+    return double.parse(value.toStringAsFixed(2));
   }
 }
 

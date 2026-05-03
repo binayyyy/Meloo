@@ -27,15 +27,24 @@ class ChatApiClient {
 
   Future<ConversationModel> createDirectConversation({
     required String accessToken,
-    required String participantUserId,
+    String? participantUserId,
+    String? participantEmail,
   }) async {
+    final body = <String, dynamic>{};
+    if (participantUserId != null && participantUserId.trim().isNotEmpty) {
+      body['participantUserId'] = participantUserId.trim();
+    }
+    if (participantEmail != null && participantEmail.trim().isNotEmpty) {
+      body['participantEmail'] = participantEmail.trim();
+    }
+
     final response = await _client.post(
       Uri.parse('$baseUrl/chat/conversations/direct'),
       headers: {
         'Authorization': 'Bearer $accessToken',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode({'participantUserId': participantUserId}),
+      body: jsonEncode(body),
     );
     return ConversationModel.fromJson(_decodeMap(response));
   }

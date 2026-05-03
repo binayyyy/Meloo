@@ -209,15 +209,23 @@ class EventCreateRequest {
   final String? coverImageUrl;
 
   Map<String, dynamic> toJson() {
+    final safeLatitude = latitude != null && latitude!.isFinite ? latitude : null;
+    final safeLongitude = longitude != null && longitude!.isFinite ? longitude : null;
+    final safeRadius =
+        vendorMatchRadiusKm != null && vendorMatchRadiusKm!.isFinite
+            ? vendorMatchRadiusKm
+            : null;
+
     return {
       'title': title,
       'description': description,
       'categoryId': categoryId,
       'venue': venue,
       'city': city,
-      if (latitude != null) 'latitude': latitude,
-      if (longitude != null) 'longitude': longitude,
-      if (vendorMatchRadiusKm != null) 'vendorMatchRadiusKm': vendorMatchRadiusKm,
+      if (safeLatitude != null) 'latitude': safeLatitude,
+      if (safeLongitude != null) 'longitude': safeLongitude,
+      if (safeLatitude != null && safeLongitude != null && safeRadius != null)
+        'vendorMatchRadiusKm': safeRadius,
       'startAt': startAt.toUtc().toIso8601String(),
       'endAt': endAt.toUtc().toIso8601String(),
       'status': publishImmediately ? 'published' : 'draft',

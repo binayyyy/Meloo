@@ -10,8 +10,29 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { EventStatus, EventVisibility } from '../entities';
+
+function toOptionalNumber(value: unknown): unknown {
+  if (value == null || value == '') {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? value : parsed;
+}
+
+function roundOptionalNumber(
+  value: unknown,
+  maxDecimalPlaces: number,
+): unknown {
+  const parsed = toOptionalNumber(value);
+  if (typeof parsed !== 'number') {
+    return parsed;
+  }
+
+  return Number(parsed.toFixed(maxDecimalPlaces));
+}
 
 export class UpdateEventDto {
   @IsOptional()
@@ -39,6 +60,7 @@ export class UpdateEventDto {
   city?: string;
 
   @IsOptional()
+  @Transform(({ value }) => roundOptionalNumber(value, 6))
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 6 })
   @Min(-90)
@@ -46,6 +68,7 @@ export class UpdateEventDto {
   latitude?: number;
 
   @IsOptional()
+  @Transform(({ value }) => roundOptionalNumber(value, 6))
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 6 })
   @Min(-180)
@@ -53,6 +76,7 @@ export class UpdateEventDto {
   longitude?: number;
 
   @IsOptional()
+  @Transform(({ value }) => roundOptionalNumber(value, 2))
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(1)

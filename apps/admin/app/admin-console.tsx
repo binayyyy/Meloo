@@ -806,20 +806,41 @@ export function AdminConsole({
                             ? 'Vendor verified'
                             : user.sponsorVerified
                               ? 'Sponsor verified'
-                              : 'Unverified'}
+                              : user.status === 'pending_verification'
+                                ? 'Pending account verification'
+                                : 'Unverified'}
                         </strong>
                         <span>
                           {user.vendorProfileId ? 'Vendor profile' : ''}
                           {user.vendorProfileId && user.sponsorProfileId ? ' • ' : ''}
                           {user.sponsorProfileId ? 'Sponsor profile' : ''}
-                          {!user.vendorProfileId && !user.sponsorProfileId ? 'No trust profile' : ''}
+                          {!user.vendorProfileId && !user.sponsorProfileId
+                            ? user.role === 'attendee' || user.role === 'organizer'
+                              ? 'Account access review'
+                              : 'No trust profile'
+                            : ''}
                         </span>
                       </div>
                     </td>
                     <td>{formatDateTime(user.updatedAt)}</td>
                     <td>
                       <div className="table-actions">
-                        {user.status === 'suspended' ? (
+                        {user.status === 'pending_verification' ? (
+                          <button
+                            className="button button-primary"
+                            onClick={() =>
+                              runAdminMutation(() =>
+                                patchAdminJson(
+                                  `/admin/users/${user.id}/status`,
+                                  adminToken,
+                                  { status: 'active' },
+                                ),
+                              )
+                            }
+                          >
+                            Verify account
+                          </button>
+                        ) : user.status === 'suspended' ? (
                           <button
                             className="button button-primary"
                             onClick={() =>

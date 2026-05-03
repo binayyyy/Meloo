@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -75,7 +76,16 @@ export class ChatService {
     userId: string,
     dto: CreateDirectConversationDto,
   ): Promise<ConversationResponseDto> {
-    if (dto.participantUserId === userId) {
+    const participantUserId = dto.participantUserId?.trim();
+    const participantEmail = dto.participantEmail?.trim().toLowerCase();
+
+    if (!participantUserId && !participantEmail) {
+      throw new BadRequestException(
+        'Provide either a participant user ID or participant email',
+      );
+    }
+
+    if (participantUserId === userId) {
       throw new ForbiddenException('You cannot start a conversation with yourself');
     }
 
@@ -84,14 +94,23 @@ export class ChatService {
         where: { id: userId },
         relations: { profile: true },
       }),
-      this.usersRepository.findOne({
-        where: { id: dto.participantUserId },
-        relations: { profile: true },
-      }),
+      participantUserId
+        ? this.usersRepository.findOne({
+            where: { id: participantUserId },
+            relations: { profile: true },
+          })
+        : this.usersRepository.findOne({
+            where: { email: participantEmail },
+            relations: { profile: true },
+          }),
     ]);
 
     if (!me || !otherUser) {
       throw new NotFoundException('User not found');
+    }
+
+    if (otherUser.id === userId) {
+      throw new ForbiddenException('You cannot start a conversation with yourself');
     }
 
     const existingMemberships = await this.participantsRepository.find({
@@ -110,7 +129,7 @@ export class ChatService {
           conversation.type === ConversationType.DIRECT &&
           conversation.participants.length === 2 &&
           conversation.participants.some(
-            (participant) => participant.userId === dto.participantUserId,
+            (participant) => participant.userId === otherUser.id,
           ),
       );
 
@@ -131,7 +150,7 @@ export class ChatService {
       }),
       this.participantsRepository.create({
         conversationId: conversation.id,
-        userId: dto.participantUserId,
+        userId: otherUser.id,
       }),
     ]);
 

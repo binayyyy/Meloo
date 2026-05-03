@@ -79,6 +79,12 @@ export class AiService {
     });
 
     if (modelResponse != null) {
+      const fallback = this.buildFallbackSupportAssistance(category, message);
+      const normalizedCategory = category?.toLowerCase();
+      if (this.shouldUseFallbackSupportSuggestion(normalizedCategory, modelResponse.suggestion)) {
+        return fallback;
+      }
+
       return {
         suggestion: modelResponse.suggestion,
         confidence: modelResponse.confidence,
@@ -191,21 +197,40 @@ export class AiService {
 
     const profile = await this.userProfilesRepository.findOne({ where: { userId } });
     const profileText = `${profile?.bio ?? ''} ${profile?.fullName ?? ''}`.toLowerCase();
+    const locationSignals = this.extractLocationSignals(profileText);
 
     return events.map((event) => {
-      let score = 0.6;
-      let reasonSummary = 'Upcoming public event ranked for near-term availability.';
-      if (profileText.includes(event.city.toLowerCase())) {
+      let score = 0.48;
+      const reasons: string[] = [];
+      const eventText =
+        `${event.title} ${event.description} ${event.category.name} ${event.city}`.toLowerCase();
+      if (locationSignals.has(event.city.toLowerCase())) {
         score += 0.2;
-        reasonSummary = `Matches your profile context for ${event.city}.`;
+        reasons.push(`profile mentions ${event.city}`);
       }
       if (profileText.includes(event.category.name.toLowerCase())) {
-        score += 0.15;
-        reasonSummary = `Matches interests mentioned in your profile and the ${event.category.name} category.`;
+        score += 0.18;
+        reasons.push(`profile interest aligns with ${event.category.name}`);
+      }
+      if (
+        ['technology', 'business', 'music', 'food', 'culture', 'education', 'community']
+          .some((term) => profileText.includes(term) && eventText.includes(term))
+      ) {
+        score += 0.08;
+        reasons.push('theme overlap with profile interests');
+      }
+      const daysUntilStart =
+        (event.startAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+      if (daysUntilStart >= 0 && daysUntilStart <= 30) {
+        score += 0.06;
+        reasons.push('happening soon');
       }
       return {
-        score: Number(score.toFixed(2)),
-        reasonSummary,
+        score: Number(Math.max(0, Math.min(1, score)).toFixed(2)),
+        reasonSummary:
+          reasons.length > 0
+            ? `${reasons.slice(0, 3).join(', ')}.`
+            : 'Upcoming public event ranked for availability and category relevance.',
         event: this.eventsService.toEventResponse(event),
       };
     });
@@ -254,31 +279,63 @@ export class AiService {
 
     const opportunities = await this.sponsorshipOpportunitiesRepository.find({
       where: { status: SponsorshipOpportunityStatus.OPEN },
-      relations: { event: true },
+      relations: { event: { category: true } },
       order: { createdAt: 'DESC' },
       take: 8,
     });
 
-    const industries = sponsorProfile?.industries.toLowerCase() ?? '';
+    const profileText = [
+      sponsorProfile?.industries ?? '',
+      sponsorProfile?.description ?? '',
+      sponsorProfile?.companyName ?? '',
+    ]
+      .join(' ')
+      .toLowerCase();
 
     return opportunities
       .map((opportunity) => {
-        const haystack =
-          `${opportunity.title} ${opportunity.description} ${opportunity.targetAudience}`.toLowerCase();
-        let score = 0.58;
-        let reasonSummary =
-          'Open sponsorship opportunity ranked by active availability and audience clarity.';
-        if (industries.length > 0 && industries.split(',').some((term) => haystack.includes(term.trim()))) {
+        const haystack = [
+          opportunity.title,
+          opportunity.description,
+          opportunity.targetAudience,
+          opportunity.benefitsOffered,
+          opportunity.event.title,
+          opportunity.event.city,
+          opportunity.event.category?.name ?? '',
+        ]
+          .join(' ')
+          .toLowerCase();
+        let score = 0.46;
+        const reasons: string[] = [];
+        const industryMatches = profileText
+          .split(',')
+          .map((term) => term.trim())
+          .filter((term) => term.length > 0 && haystack.includes(term));
+        if (industryMatches.length > 0) {
           score += 0.22;
-          reasonSummary =
-            'Opportunity audience or description matches industries listed in your sponsor profile.';
+          reasons.push(`industry overlap with ${industryMatches.slice(0, 2).join(' and ')}`);
+        }
+        if (profileText.includes(opportunity.event.city.toLowerCase())) {
+          score += 0.14;
+          reasons.push(`profile context matches ${opportunity.event.city}`);
+        }
+        if (
+          opportunity.event.category?.name &&
+          profileText.includes(opportunity.event.category.name.toLowerCase())
+        ) {
+          score += 0.12;
+          reasons.push(`category fit for ${opportunity.event.category.name}`);
         }
         if (Number.parseFloat(opportunity.requiredAmount) <= 5000) {
           score += 0.08;
+          reasons.push('entry budget is comparatively accessible');
         }
         return {
-          score: Number(score.toFixed(2)),
-          reasonSummary,
+          score: Number(Math.max(0, Math.min(1, score)).toFixed(2)),
+          reasonSummary:
+            reasons.length > 0
+              ? `${reasons.slice(0, 3).join(', ')}.`
+              : 'Open sponsorship opportunity ranked by availability and audience clarity.',
           opportunity: this.sponsorsService.toOpportunityResponse(opportunity),
         };
       })
@@ -411,7 +468,7 @@ export class AiService {
     const budgetValue = Number.parseFloat(dto.budget ?? '0');
     const budgetText =
       Number.isFinite(budgetValue) && budgetValue > 0
-        ? `around ${budgetValue.toFixed(2)} USD`
+        ? `a working budget of ${budgetValue.toFixed(0)}`
         : 'an unspecific working budget';
     const planningGoal = dto.planningGoal?.trim() ?? 'deliver a smooth attendee experience';
 
@@ -456,7 +513,14 @@ export class AiService {
     }
 
     return {
-      overview: modelResponse.overview,
+      overview:
+        this.shouldUseFallbackPlanningOverview(
+          event,
+          city,
+          modelResponse.overview,
+        )
+          ? fallback.overview
+          : modelResponse.overview,
       vendorCategories:
         modelResponse.vendorCategories.length > 0
           ? modelResponse.vendorCategories
@@ -534,10 +598,57 @@ export class AiService {
     vendor: VendorProfile,
     event: Event,
   ): VendorRecommendationResponseDto {
-    let score = vendor.verified ? 0.7 : 0.48;
-    let reasonSummary = vendor.verified
-      ? 'Verified vendor ranked above unverified profiles.'
-      : 'Unverified vendor included because profile coverage is relevant.';
+    let score = vendor.verified ? 0.52 : 0.34;
+    const reasons: string[] = [];
+    if (vendor.verified) {
+      reasons.push('verified profile');
+    }
+
+    const eventCategory = event.category.name.toLowerCase();
+    const vendorCategory = vendor.category.toLowerCase();
+    const vendorDescription = vendor.description.toLowerCase();
+    const serviceText = vendor.services
+      .map((service) => `${service.name} ${service.description}`.toLowerCase())
+      .join(' ');
+    const packageText = vendor.packages
+      .map((item) => `${item.name} ${item.description}`.toLowerCase())
+      .join(' ');
+
+    const categoryAligned =
+      vendorCategory.includes(eventCategory) ||
+      eventCategory.includes(vendorCategory) ||
+      vendorDescription.includes(eventCategory) ||
+      serviceText.includes(eventCategory);
+    if (categoryAligned) {
+      score += 0.14;
+      reasons.push(`category fit for ${event.category.name}`);
+    }
+
+    const coverageKeywords = this.pickVendorCategories(
+      event.category.name,
+      180,
+    )
+      .map((item) => item.toLowerCase())
+      .filter((item) =>
+        vendorCategory.includes(item) ||
+        vendorDescription.includes(item) ||
+        serviceText.includes(item) ||
+        packageText.includes(item),
+      );
+    if (coverageKeywords.length > 0) {
+      score += Math.min(0.16, coverageKeywords.length * 0.05);
+      reasons.push(
+        `service coverage matches ${coverageKeywords.slice(0, 2).join(' and ')}`,
+      );
+    }
+
+    if (vendor.services.length > 0) {
+      score += Math.min(0.08, vendor.services.length * 0.02);
+    }
+
+    if (vendor.packages.length > 0) {
+      score += Math.min(0.06, vendor.packages.length * 0.02);
+    }
 
     const distanceKm =
       hasCoordinates(event) && hasCoordinates(vendor)
@@ -554,26 +665,40 @@ export class AiService {
       const withinVendorRadius = distanceKm <= vendorTravelRadiusKm;
       const withinEventRadius = distanceKm <= eventMatchRadiusKm;
       if (withinVendorRadius && withinEventRadius) {
-        score += 0.24;
-        reasonSummary = `${distanceKm.toFixed(1)} km away and inside both the vendor travel radius and event match radius.`;
+        score += 0.22;
+        reasons.push(
+          `${distanceKm.toFixed(1)} km away and inside both travel limits`,
+        );
       } else if (withinVendorRadius || withinEventRadius) {
         score += 0.1;
-        reasonSummary = `${distanceKm.toFixed(1)} km away with partial radius overlap for this event.`;
+        reasons.push(
+          `${distanceKm.toFixed(1)} km away with partial radius overlap`,
+        );
       } else {
-        score -= 0.1;
-        reasonSummary = `${distanceKm.toFixed(1)} km away, which sits outside the preferred travel radius for this match.`;
+        score -= 0.12;
+        reasons.push(
+          `${distanceKm.toFixed(1)} km away and outside preferred travel range`,
+        );
       }
     } else if (vendor.serviceArea.toLowerCase().includes(event.city.toLowerCase())) {
-      score += 0.18;
-      reasonSummary = `Service area includes ${event.city}, which aligns with the event location.`;
+      score += 0.14;
+      reasons.push(`service area includes ${event.city}`);
     }
 
     if (vendor.bookingPreference?.allowDirectBooking === true) {
       score += 0.08;
+      reasons.push('direct booking enabled');
     }
 
+    const reasonSummary =
+      reasons.length > 0
+        ? `${reasons.slice(0, 3).join(', ')}.`
+        : vendor.verified
+          ? 'Verified vendor ranked above unverified profiles.'
+          : 'Unverified vendor included because profile coverage is relevant.';
+
     return {
-      score: Number(score.toFixed(2)),
+      score: Number(Math.max(0, Math.min(1, score)).toFixed(2)),
       reasonSummary,
       vendor: this.vendorsService.toVendorProfileResponse(vendor, {
         distanceKm,
@@ -671,6 +796,8 @@ export class AiService {
       counterpartName,
       prompt,
       isAutoReply,
+      context.recentMessages,
+      userId,
     );
   }
 
@@ -842,20 +969,27 @@ export class AiService {
     counterpartName: string,
     prompt: string | null | undefined,
     isAutoReply: boolean,
+    messages: Message[],
+    currentUserId: string,
   ): string {
     const trimmedPrompt = prompt?.trim();
     const promptLead =
       trimmedPrompt != null && trimmedPrompt.length > 0
         ? `${trimmedPrompt} `
         : '';
+    const latestInbound = [...messages]
+      .reverse()
+      .find((message) => message.senderId !== currentUserId);
+    const latestInboundText = latestInbound?.body.toLowerCase() ?? '';
+    const missingDetail = this.inferMostUsefulMissingDetail(latestInboundText);
     if (isAutoReply) {
       switch (role) {
         case Role.ORGANIZER:
-          return `${promptLead}Thanks ${counterpartName}, I’m reviewing this now and will follow up with the next event step shortly. If you have the date, venue, or attendee target ready, send that next so I can respond faster.`;
+          return `${promptLead}Thanks ${counterpartName}, I’m reviewing this now and will follow up with the next event step shortly. If you can send ${missingDetail}, I can respond faster with a concrete next step.`;
         case Role.VENDOR:
-          return `${promptLead}Thanks ${counterpartName}, I can help with this. Send the event date, venue, guest count, and the service scope you need, and I’ll reply with availability and the best next step.`;
+          return `${promptLead}Thanks ${counterpartName}, I can help with this. Send ${missingDetail} and I’ll reply with availability, scope, and the best next step.`;
         case Role.SPONSOR:
-          return `${promptLead}Thanks ${counterpartName}, I’m reviewing the opportunity. Please share the audience profile, timing, and the sponsor outcome you want most so I can tailor the response.`;
+          return `${promptLead}Thanks ${counterpartName}, I’m reviewing the opportunity. Please share ${missingDetail} so I can tailor the response.`;
         case Role.ADMIN:
           return `${promptLead}Thanks ${counterpartName}, this has been noted and I’m reviewing the right next action now.`;
         case Role.ATTENDEE:
@@ -865,15 +999,106 @@ export class AiService {
 
     switch (role) {
       case Role.ORGANIZER:
-        return `${promptLead}Thanks ${counterpartName}. I’m aligning the event side of this now and can confirm the next decision once I’ve checked timing, capacity, and dependencies.`;
+        return `${promptLead}Thanks ${counterpartName}. I’m aligning the event side of this now and can confirm the next decision once I’ve checked timing, capacity, and dependencies. Send ${missingDetail} if you have it so I can make the next step more concrete.`;
       case Role.VENDOR:
-        return `${promptLead}Thanks ${counterpartName}. I can put together scope, availability, and pricing once I have the event date, venue, attendee count, and the coverage you need.`;
+        return `${promptLead}Thanks ${counterpartName}. I can put together scope, availability, and pricing once I have ${missingDetail}.`;
       case Role.SPONSOR:
-        return `${promptLead}Thanks ${counterpartName}. I can shape a stronger proposal once I have the audience profile, timeline, and the sponsor outcome you want to optimize for.`;
+        return `${promptLead}Thanks ${counterpartName}. I can shape a stronger proposal once I have ${missingDetail}.`;
       case Role.ADMIN:
         return `${promptLead}Thanks ${counterpartName}. I’m reviewing this and will respond with the clearest next action shortly.`;
       case Role.ATTENDEE:
         return `${promptLead}Thanks ${counterpartName}. I’ve got the message and will follow up with the next step shortly.`;
     }
+  }
+
+  private inferMostUsefulMissingDetail(text: string): string {
+    if (!text.includes('date') && !text.includes('time')) {
+      return 'the event date and timing';
+    }
+    if (!text.includes('venue') && !text.includes('location')) {
+      return 'the venue or location';
+    }
+    if (!text.includes('guest') && !text.includes('attendee') && !text.includes('audience')) {
+      return 'the expected guest or audience size';
+    }
+    if (!text.includes('budget') && !text.includes('price')) {
+      return 'the working budget or price range';
+    }
+    if (!text.includes('scope') && !text.includes('deliverable') && !text.includes('coverage')) {
+      return 'the exact scope or deliverables';
+    }
+    return 'one or two missing operational details';
+  }
+
+  private shouldUseFallbackSupportSuggestion(
+    normalizedCategory: string | undefined,
+    suggestion: string,
+  ): boolean {
+    const normalizedSuggestion = suggestion.toLowerCase();
+    if (normalizedSuggestion.trim().length < 60) {
+      return true;
+    }
+
+    if (
+      normalizedCategory === 'payment' &&
+      !['payment', 'checkout', 'charge', 'refund', 'billing', 'stripe'].some(
+        (term) => normalizedSuggestion.includes(term),
+      )
+    ) {
+      return true;
+    }
+
+    if (
+      normalizedCategory === 'technical' &&
+      !['step', 'screen', 'reproduce', 'retry', 'error'].some((term) =>
+        normalizedSuggestion.includes(term),
+      )
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private shouldUseFallbackPlanningOverview(
+    event: Event | null,
+    city: string,
+    overview: string,
+  ): boolean {
+    const normalizedOverview = overview.toLowerCase().trim();
+    if (normalizedOverview.length < 80) {
+      return true;
+    }
+
+    if (event != null && !normalizedOverview.includes(event.title.toLowerCase())) {
+      return true;
+    }
+
+    if (!normalizedOverview.includes(city.toLowerCase())) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private extractLocationSignals(text: string): Set<string> {
+    const knownLocations = [
+      'kathmandu',
+      'lalitpur',
+      'bhaktapur',
+      'pokhara',
+      'biratnagar',
+      'dharan',
+      'chitwan',
+      'bharatpur',
+      'butwal',
+      'nepalgunj',
+      'janakpur',
+      'hetauda',
+    ];
+
+    return new Set(
+      knownLocations.filter((location) => text.includes(location)),
+    );
   }
 }

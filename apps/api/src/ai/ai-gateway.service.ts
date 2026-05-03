@@ -33,7 +33,7 @@ export class AiGatewayService {
     }
 
     try {
-      return JSON.parse(this.stripMarkdownFences(content)) as T;
+      return this.parseJsonContent<T>(content);
     } catch (error) {
       this.logger.warn(
         `Model JSON parse failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -151,5 +151,27 @@ export class AiGatewayService {
       .replace(/^```[a-zA-Z0-9_-]*\s*/, '')
       .replace(/\s*```$/, '')
       .trim();
+  }
+
+  private parseJsonContent<T>(content: string): T {
+    const normalized = this.stripMarkdownFences(content);
+
+    try {
+      return JSON.parse(normalized) as T;
+    } catch {
+      const firstBrace = normalized.indexOf('{');
+      const lastBrace = normalized.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace > firstBrace) {
+        return JSON.parse(normalized.slice(firstBrace, lastBrace + 1)) as T;
+      }
+
+      const firstBracket = normalized.indexOf('[');
+      const lastBracket = normalized.lastIndexOf(']');
+      if (firstBracket !== -1 && lastBracket > firstBracket) {
+        return JSON.parse(normalized.slice(firstBracket, lastBracket + 1)) as T;
+      }
+
+      throw new Error('No JSON object found in model response');
+    }
   }
 }

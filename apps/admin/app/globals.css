@@ -550,9 +550,9 @@ h3 {
 
 .asset-preview-image {
   width: 100%;
-  max-height: 180px;
+  height: 180px;
   border-radius: 14px;
-  object-fit: contain;
+  object-fit: cover;
   background: linear-gradient(180deg, rgba(20, 35, 63, 0.03), rgba(19, 174, 191, 0.06));
 }
 

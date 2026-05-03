@@ -206,31 +206,49 @@ class _UploadFieldCardState extends State<UploadFieldCard> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  child: selectedBytes != null
-                      ? Image.memory(
-                          selectedBytes,
-                          height: widget.previewHeight,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        )
-                      : MelooRemoteImage(
-                          imageUrl: currentValue,
-                          fallbackLabel: widget.label,
-                          height: widget.previewHeight,
-                          width: double.infinity,
-                          fontSize: 28,
-                          fallbackGradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Color(0xFF2E4A62),
-                              Color(0xFF4D6478),
-                              Color(0xFF7A8F9E),
-                            ],
-                          ),
+                SizedBox(
+                  height: widget.previewHeight,
+                  width: double.infinity,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: DecoratedBox(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color(0x142E4A62),
+                            Color(0x144D6478),
+                            Color(0x147A8F9E),
+                          ],
                         ),
+                      ),
+                      child: selectedBytes != null
+                          ? Image.memory(
+                              selectedBytes,
+                              height: widget.previewHeight,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            )
+                          : MelooRemoteImage(
+                              imageUrl: currentValue,
+                              fallbackLabel: widget.label,
+                              height: widget.previewHeight,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              fontSize: 28,
+                              fallbackGradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Color(0xFF2E4A62),
+                                  Color(0xFF4D6478),
+                                  Color(0xFF7A8F9E),
+                                ],
+                              ),
+                            ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Wrap(

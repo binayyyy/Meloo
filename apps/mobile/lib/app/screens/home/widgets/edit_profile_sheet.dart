@@ -239,7 +239,6 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
                   onPressed: isSubmitting
                       ? null
                       : () async {
-                          FocusScope.of(context).unfocus();
                           final form = _formKey.currentState;
                           if (form == null || !form.validate()) {
                             return;

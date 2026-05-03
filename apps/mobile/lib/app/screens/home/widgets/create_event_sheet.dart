@@ -17,7 +17,7 @@ class CreateEventSheet extends StatefulWidget {
 
   final String accessToken;
   final List<EventCategoryModel> categories;
-  final Future<void> Function(EventCreateRequest request) onSubmit;
+  final Future<bool> Function(EventCreateRequest request) onSubmit;
   final bool isSubmitting;
 
   @override
@@ -115,17 +115,22 @@ class _CreateEventSheetState extends State<CreateEventSheet> {
       return;
     }
 
-    await widget.onSubmit(
+    final safeLatitude = _latitude != null && _latitude!.isFinite ? _latitude : null;
+    final safeLongitude =
+        _longitude != null && _longitude!.isFinite ? _longitude : null;
+    final safeRadius = _vendorMatchRadiusKm.isFinite ? _vendorMatchRadiusKm : 60.0;
+
+    final saved = await widget.onSubmit(
       EventCreateRequest(
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         categoryId: _categoryId!,
         venue: _venueController.text.trim(),
         city: _cityController.text.trim(),
-        latitude: _latitude,
-        longitude: _longitude,
+        latitude: safeLatitude,
+        longitude: safeLongitude,
         vendorMatchRadiusKm:
-            _latitude != null && _longitude != null ? _vendorMatchRadiusKm : null,
+            safeLatitude != null && safeLongitude != null ? safeRadius : null,
         startAt: _startAt!,
         endAt: _endAt!,
         publishImmediately: _publishImmediately,
@@ -135,7 +140,7 @@ class _CreateEventSheetState extends State<CreateEventSheet> {
       ),
     );
 
-    if (mounted) {
+    if (mounted && saved) {
       Navigator.of(context).pop();
     }
   }
@@ -245,9 +250,19 @@ class _CreateEventSheetState extends State<CreateEventSheet> {
                   initialRadiusKm: _vendorMatchRadiusKm,
                   defaultCenter: const LatLng(27.7172, 85.3240),
                   onChanged: (selection) {
-                    _latitude = selection.latitude;
-                    _longitude = selection.longitude;
-                    _vendorMatchRadiusKm = selection.radiusKm;
+                    setState(() {
+                      _latitude =
+                          selection.latitude != null && selection.latitude!.isFinite
+                              ? selection.latitude
+                              : null;
+                      _longitude =
+                          selection.longitude != null && selection.longitude!.isFinite
+                              ? selection.longitude
+                              : null;
+                      _vendorMatchRadiusKm = selection.radiusKm.isFinite
+                          ? selection.radiusKm
+                          : 60;
+                    });
                   },
                 ),
                 const SizedBox(height: 14),

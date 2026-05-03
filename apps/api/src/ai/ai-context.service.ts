@@ -491,6 +491,9 @@ export class AiContextService {
       `Category: ${event.category.name}`,
       `City: ${event.city}`,
       `Venue: ${event.venue}`,
+      `Latitude: ${event.latitude ?? 'Not provided'}`,
+      `Longitude: ${event.longitude ?? 'Not provided'}`,
+      `Vendor match radius km: ${event.vendorMatchRadiusKm ?? 'Not provided'}`,
       `Status: ${event.status}`,
       `Visibility: ${event.visibility}`,
       `Starts at: ${event.startAt.toISOString()}`,
@@ -523,8 +526,13 @@ export class AiContextService {
         `Service area: ${vendor.serviceArea}`,
         `Description: ${vendor.description}`,
         `Verified: ${vendor.verified ? 'yes' : 'no'}`,
+        `Base latitude: ${vendor.latitude ?? 'Not provided'}`,
+        `Base longitude: ${vendor.longitude ?? 'Not provided'}`,
+        `Travel radius km: ${vendor.travelRadiusKm ?? 'Not provided'}`,
         `Services: ${vendor.services.map((item) => item.name).join(', ') || 'none listed'}`,
         `Packages: ${vendor.packages.map((item) => item.name).join(', ') || 'none listed'}`,
+        `Direct booking: ${vendor.bookingPreference?.allowDirectBooking === true ? 'enabled' : 'disabled'}`,
+        `Request booking: ${vendor.bookingPreference?.allowRequestBooking === true ? 'enabled' : 'disabled'}`,
       ].join('\n');
     }
 
@@ -543,6 +551,7 @@ export class AiContextService {
         `Description: ${sponsor.description}`,
         `Verified: ${sponsor.verified ? 'yes' : 'no'}`,
         `Website: ${sponsor.websiteUrl ?? 'Not provided'}`,
+        `Verification document: ${sponsor.verificationDocumentUrl ?? 'Not provided'}`,
       ].join('\n');
     }
 

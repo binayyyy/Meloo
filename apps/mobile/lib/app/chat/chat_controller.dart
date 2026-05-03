@@ -89,6 +89,27 @@ class ChatController extends SafeChangeNotifier {
     }
   }
 
+  Future<ConversationModel> createDirectConversationByEmail(
+    AuthSession session,
+    String participantEmail,
+  ) async {
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final conversation = await _apiClient.createDirectConversation(
+        accessToken: session.tokens.accessToken,
+        participantEmail: participantEmail,
+      );
+      await load(session);
+      return conversation;
+    } catch (error) {
+      _errorMessage = error.toString();
+      notifyListeners();
+      rethrow;
+    }
+  }
+
   Future<void> openConversation(
     AuthSession session,
     ConversationModel conversation,

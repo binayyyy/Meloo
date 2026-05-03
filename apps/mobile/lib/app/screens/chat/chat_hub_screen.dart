@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../chat/chat_controller.dart';
 import '../../chat/chat_models.dart';
+import '../../session/auth_api_client.dart';
 import '../../session/auth_models.dart';
 import '../../widgets/workflow_page_scaffold.dart';
 
@@ -9,6 +10,7 @@ class ChatHubScreen extends StatelessWidget {
     required this.controller,
     required this.session,
     required this.onOpenConversation,
+    required this.onStartConversationByEmail,
     super.key,
   });
 
@@ -18,6 +20,7 @@ class ChatHubScreen extends StatelessWidget {
     ConversationModel conversation, {
     String? title,
   }) onOpenConversation;
+  final Future<void> Function(String participantEmail) onStartConversationByEmail;
 
   @override
   Widget build(BuildContext context) {
@@ -25,22 +28,34 @@ class ChatHubScreen extends StatelessWidget {
       animation: controller,
       builder: (context, _) {
         return WorkflowPageScaffold(
-          trailing: Container(
-            margin: const EdgeInsets.only(right: 6),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF4EFE7),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: const Color(0xFFE3D5C5)),
-            ),
-            child: Text(
-              '${controller.conversations.length} threads',
-              style: const TextStyle(
-                color: Color(0xFF6B4D2F),
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton.filledTonal(
+                tooltip: 'Start chat by email',
+                onPressed: () =>
+                    _showStartConversationDialog(context, controller, session),
+                icon: const Icon(Icons.person_add_alt_1_rounded),
               ),
-            ),
+              const SizedBox(width: 8),
+              Container(
+                margin: const EdgeInsets.only(right: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4EFE7),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: const Color(0xFFE3D5C5)),
+                ),
+                child: Text(
+                  '${controller.conversations.length} threads',
+                  style: const TextStyle(
+                    color: Color(0xFF6B4D2F),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,6 +244,86 @@ class ChatHubScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _showStartConversationDialog(
+    BuildContext context,
+    ChatController controller,
+    AuthSession session,
+  ) async {
+    final emailController = TextEditingController();
+    String? errorText;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Start chat'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Enter the exact account email of the person you want to message.',
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      labelText: 'Account email',
+                      errorText: errorText,
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () async {
+                    final email = emailController.text.trim();
+                    final isValidEmail = RegExp(
+                      r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                    ).hasMatch(email);
+                    if (!isValidEmail) {
+                      setState(() {
+                        errorText = 'Enter a valid email address.';
+                      });
+                      return;
+                    }
+
+                    try {
+                      Navigator.of(dialogContext).pop();
+                      await onStartConversationByEmail(email);
+                    } on ApiException {
+                      if (!context.mounted) {
+                        return;
+                      }
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            controller.errorMessage ??
+                                'Unable to start the conversation.',
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text('Start'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    emailController.dispose();
   }
 
   String _subtitleForRole(UserRole role) {

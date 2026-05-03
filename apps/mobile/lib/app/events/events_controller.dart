@@ -83,6 +83,17 @@ class EventsController extends SafeChangeNotifier {
     }
   }
 
+  Future<void> refreshCategories() async {
+    try {
+      _categories = await _apiClient.fetchCategories();
+      _errorMessage = null;
+      notifyListeners();
+    } catch (error) {
+      _errorMessage = error.toString();
+      notifyListeners();
+    }
+  }
+
   Future<void> createEvent(
     AuthSession session,
     EventCreateRequest request,

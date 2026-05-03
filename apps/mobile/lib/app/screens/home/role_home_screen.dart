@@ -297,7 +297,8 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
   }
 
   Future<void> _openCreateEventSheet(AuthSession session) async {
-    if (_eventsController.categories.isEmpty) {
+    await _eventsController.refreshCategories();
+    if (_eventsController.categories.isEmpty && !_eventsController.hasLoaded) {
       await _eventsController.load(session);
     }
     if (_eventsController.categories.isEmpty) {
@@ -316,6 +317,7 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
             onSubmit: (request) async {
               try {
                 await _eventsController.createEvent(session, request);
+                await _eventsController.load(session);
                 if (mounted) {
                   _showSnack(
                     _eventsController.successMessage ?? 'Event saved.',
@@ -323,12 +325,14 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
                   _loadedTabs.remove(_tabKey(session, 0));
                   _loadedTabs.remove(_tabKey(session, 1));
                 }
+                return true;
               } on ApiException {
                 if (mounted) {
                   _showSnack(
                     _eventsController.errorMessage ?? 'Event save failed.',
                   );
                 }
+                return false;
               }
             },
           );
@@ -770,6 +774,20 @@ class _RoleHomeScreenState extends State<RoleHomeScreen> {
               conversation,
               title: title,
             ),
+            onStartConversationByEmail: (participantEmail) async {
+              final conversation = await _chatController
+                  .createDirectConversationByEmail(session, participantEmail);
+              if (!context.mounted) {
+                return;
+              }
+              await _openConversationScreen(
+                session,
+                conversation,
+                title: _chatController
+                    .counterpartFor(conversation)
+                    ?.displayName,
+              );
+            },
           );
         },
       ),

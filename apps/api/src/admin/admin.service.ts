@@ -518,6 +518,11 @@ export class AdminService {
 
     vendor.verified = verified;
     await this.vendorProfilesRepository.save(vendor);
+    if (verified) {
+      await this.usersRepository.update(vendor.userId, {
+        status: UserStatus.ACTIVE,
+      });
+    }
     return this.vendorsService.toVendorProfileResponse(vendor);
   }
 
@@ -535,6 +540,11 @@ export class AdminService {
 
     sponsor.verified = verified;
     await this.sponsorProfilesRepository.save(sponsor);
+    if (verified) {
+      await this.usersRepository.update(sponsor.userId, {
+        status: UserStatus.ACTIVE,
+      });
+    }
     return this.toSponsorProfileResponse(sponsor);
   }
 
